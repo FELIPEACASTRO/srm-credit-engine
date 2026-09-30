@@ -38,4 +38,9 @@ public class EngineConfig {
     public Clock clock(@Value("${app.timezone:America/Sao_Paulo}") String zone) {
         return Clock.system(ZoneId.of(zone));
     }
+
+    @Bean
+    public com.srmasset.creditengine.settlement.SettlementHooks settlementHooks() {
+        return () -> { };
+    }
 }
