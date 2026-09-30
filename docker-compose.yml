@@ -1,0 +1,49 @@
+# Sobe tudo do zero: banco (com usuario de aplicacao restrito), API (roda as migrations
+# como dono e conecta como app) e web (nginx com proxy /api).
+#   docker compose up --build       ->  http://localhost  (web)  ·  http://localhost:8080/swagger-ui.html
+# Reset completo: docker compose down -v
+
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: credit_engine
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:-credit_engine_app}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./infra/db-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      # -h 127.0.0.1 forca TCP: o socket unix fica pronto antes e daria falso "saudavel"
+      test: ["CMD-SHELL", "pg_isready -U postgres -d credit_engine -h 127.0.0.1"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  api:
+    build: ./backend
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:postgresql://db:5432/credit_engine
+      DB_USER: credit_engine_app
+      DB_PASSWORD: ${APP_DB_PASSWORD:-credit_engine_app}
+      # migrations rodam como dono; a aplicacao NUNCA conecta como superusuario
+      DB_MIGRATION_USER: postgres
+      DB_MIGRATION_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      APP_FX_FEEDER_ENABLED: "true"
+      LOGGING_STRUCTURED_FORMAT_CONSOLE: ecs
+    ports:
+      - "8080:8080"
+
+  web:
+    build: ./frontend
+    depends_on:
+      - api
+    ports:
+      - "80:80"
+
+volumes:
+  db-data:
