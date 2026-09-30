@@ -1,6 +1,6 @@
 # Diagrama ER
 
-Gerado do schema real (`backend/src/main/resources/db/migration/V1__schema.sql`). Convenções:
+Gerado do schema real (migrations `V1__schema.sql` … `V4__money_scale_guard.sql`). Convenções:
 dinheiro `NUMERIC(15,2)`, juros `NUMERIC(9,6)`, câmbio `NUMERIC(15,8)`; `base_rates`,
 `exchange_rates`, `settlements` e `settlement_reversals` são **append-only** (triggers +
 papel `app_rw` na V2).
@@ -18,7 +18,7 @@ erDiagram
 
     currencies {
         char3 code PK
-        smallint minor_units "0..4"
+        smallint minor_units "= 2 (V4: dinheiro e NUMERIC(15,2))"
     }
     cedentes {
         bigserial id PK

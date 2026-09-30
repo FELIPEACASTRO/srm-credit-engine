@@ -10,7 +10,7 @@ O enunciado contém ambiguidades propositais. Este documento fixa **uma premissa
 | A1b | Qual é a data-base | Data da liquidação (America/Sao_Paulo), via `Clock` injetado; na simulação, a data corrente. O prazo usado vai ao snapshot | O preço trava na cessão ou no pagamento? |
 | A2 | Origem e valor da taxa base | Parâmetro com vigência: tabela `base_rates` append-only, seed 1,00% a.m.; os golden cases **injetam** 1% (perfil de aferição, nunca constante no motor) | Qual o indexador de referência e quem tem alçada para alterar? |
 | A3 | Política de arredondamento (modo, escala, momento) | `RoundingPolicy` injetável: HALF_EVEN, escala = casas da moeda, **ao final de cada etapa** (PV em BRL; depois conversão). A ordem da §4.3 é adotada como regra de produção | O PV intermediário em BRL é o valor contábil oficial? |
-| A4 | Qual câmbio vale na liquidação | Cotação vigente mais recente com `valid_from ≤ instante da liquidação`, lida da **tabela interna**; idade máxima `FX_MAX_AGE` (24 h, configurável); sem cotação válida → 503 + `Retry-After`. O cliente **nunca** informa a taxa | A mesa trava cotação entre simulação e liquidação? Qual staleness é aceitável? |
+| A4 | Qual câmbio vale na liquidação | Cotação vigente mais recente com `valid_from ≤ instante da liquidação`, lida da **tabela interna**; idade máxima `FX_MAX_AGE` (24 h, configurável); sem cotação válida → 503 + `Retry-After`. O cliente **nunca** informa a taxa. Atualização manual protegida por banda de sanidade de ±10% (fat finger), com `override=true` explícito e logado para choque cambial real | A mesa trava cotação entre simulação e liquidação? Qual staleness é aceitável? Qual a alçada para o override da banda? |
 | B1 | Composição das taxas | Aditiva `(1 + base + spread)`, pelo texto e pelos goldens (a multiplicativa daria C1 = 92.819,19) | O real é indexador + spread aditivo ou composição de efetivas (DI + spread é multiplicativo)? |
 | B2 | Notação "Câmbio (BRL/USD) 5,4321" | Par ordenado `{base: USD, quote: BRL, rate: BRL por 1 USD}`; conversão BRL→USD **divide** | Cotação única ou bid/ask? |
 | B3 | Moeda do deságio | Moeda do título (BRL): `deságio = face − PV_arredondado`, invariante contábil por construção | Deveria haver prêmio de risco cambial no spread? (os goldens mostram que não há) |
@@ -34,7 +34,7 @@ O enunciado contém ambiguidades propositais. Este documento fixa **uma premissa
 
 ## 2. Precisão numérica
 
-- **Banco:** `NUMERIC(15,2)` para dinheiro, `NUMERIC(9,6)` para juros, `NUMERIC(15,8)` para câmbio. Nunca FLOAT/REAL/MONEY.
+- **Banco:** `NUMERIC(15,2)` para dinheiro, `NUMERIC(9,6)` para juros, `NUMERIC(15,8)` para câmbio. Nunca FLOAT/REAL/MONEY. Como dinheiro é escala 2 fim a fim (coluna, contrato JSON `\d+\.\d{2}`, formatação), **só moedas de 2 casas são suportadas**: o CHECK `minor_units = 2` (migration V4) faz uma moeda incompatível falhar alto na migration, em vez de arredondar em silêncio no `INSERT`.
 - **Aplicação:** `BigDecimal` construído **de string**; divisão com `MathContext.DECIMAL128` (34 dígitos — sem ela, `divide` lança `ArithmeticException` já no C1, que é dízima); um único `setScale` por etapa, com `RoundingMode` explícito.
 - **Fronteiras:** dinheiro trafega como **string** no JSON (`"92859.94"`); entrada validada por pattern; nunca `float` no caminho do dinheiro (lint + testes de contrato).
 - **Quantize antes de persistir; nunca `round()` no SQL** (o `round(numeric)` do PostgreSQL desempata para longe do zero).
@@ -61,7 +61,7 @@ Mais perguntas (lastro RCVM 175, cheque à vista, correção de cotação): [`do
 | Chave diferente, recebível já liquidado | **409** `already-settled` |
 | Corrida de duas chaves pelo mesmo recebível | 1×**201** + 1×**409** `version-conflict` |
 | `expectedAmount` diverge do recálculo | **409** `price-changed` |
-| Sem `Idempotency-Key` / recebível inexistente | **400** / **404** |
+| `Idempotency-Key` ausente / mal formada / recebível inexistente | **400** `missing-idempotency-key` / **400** `invalid-idempotency-key` / **404** |
 | Input inválido (B13) | **422** com erros por campo |
 | Sem cotação vigente ou cotação velha | **503** `fx-rate-unavailable` + `Retry-After` |
 
