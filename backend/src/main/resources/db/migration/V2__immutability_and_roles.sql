@@ -41,3 +41,13 @@ GRANT SELECT, INSERT, UPDATE ON receivables TO app_rw;
 GRANT SELECT, INSERT ON cedentes TO app_rw;
 GRANT SELECT ON currencies TO app_rw;
 GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO app_rw;
+
+-- No Compose, o login da app (criado pelo init do banco) vira membro de app_rw.
+-- Nos testes embarcados o login nao existe e o bloco e um no-op.
+DO $$
+BEGIN
+  IF EXISTS (SELECT FROM pg_roles WHERE rolname = 'credit_engine_app') THEN
+    GRANT app_rw TO credit_engine_app;
+  END IF;
+END
+$$;
