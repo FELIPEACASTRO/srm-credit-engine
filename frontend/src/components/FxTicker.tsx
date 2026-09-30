@@ -1,8 +1,10 @@
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "../api/client";
 
-function ageLabel(validFrom: string): string {
-  const minutes = Math.max(0, Math.floor((Date.now() - Date.parse(validFrom)) / 60_000));
+/** Idade da vigencia em pt-BR. `now` injetavel para teste puro (sem relogio real). */
+export function ageLabel(validFrom: string, now: number = Date.now()): string {
+  const minutes = Math.max(0, Math.floor((now - Date.parse(validFrom)) / 60_000));
   if (minutes < 1) {
     return "agora";
   }
@@ -20,6 +22,14 @@ export function FxTicker() {
     refetchInterval: 60_000,
     retry: 1,
   });
+
+  // Tique proprio de 30s: a idade avanca mesmo entre refetches, sem depender do React Query
+  // re-renderizar quando a cotacao nao muda.
+  const [, tick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => tick((n) => n + 1), 30_000);
+    return () => clearInterval(id);
+  }, []);
 
   if (isError) {
     return (

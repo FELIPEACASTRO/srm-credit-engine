@@ -1,6 +1,6 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ReceivableResponse, SettlementResponse } from "../api/types";
 import { SettleDialog } from "./SettleDialog";
 
@@ -39,6 +39,8 @@ function clients() {
 }
 
 describe("SettleDialog: chave por intencao, anti-duplo-clique", () => {
+  afterEach(() => cleanup());
+
   it("duplo clique = 1 cadastro + 1 liquidacao (botao trava durante o voo)", async () => {
     const { client } = clients();
     render(<SettleDialog form={form} expectedAmount="92859.94" client={client} />);
@@ -82,5 +84,21 @@ describe("SettleDialog: chave por intencao, anti-duplo-clique", () => {
     await user.click(screen.getByRole("button", { name: /cadastrar e liquidar/i }));
     await waitFor(() => expect(settleKeys().length).toBe(2));
     expect(settleKeys()[1]).not.toBe(settleKeys()[0]);
+  });
+
+  it("apos sucesso, trocar o form ESCONDE o card da intencao antiga (sem flash de dados velhos)", async () => {
+    const { client } = clients();
+    const { rerender } = render(
+        <SettleDialog form={form} expectedAmount="92859.94" client={client} />);
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: /cadastrar e liquidar/i }));
+    // card de sucesso da intencao A aparece
+    await waitFor(() => expect(screen.getByText(/Liquida..o n. 10 registrada/)).toBeInTheDocument());
+
+    // troca o form (intencao B): o card da intencao A NAO pode continuar na tela
+    rerender(<SettleDialog form={{ ...form, faceValue: "25000.00" }}
+        expectedAmount="23337.77" client={client} />);
+    expect(screen.queryByText(/Liquida..o n. 10 registrada/)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /cadastrar e liquidar/i })).toBeInTheDocument();
   });
 });
