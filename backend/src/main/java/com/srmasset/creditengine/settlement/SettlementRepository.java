@@ -50,6 +50,13 @@ public class SettlementRepository {
         this.jdbc = jdbc;
     }
 
+    public Optional<SettlementRow> findById(long id) {
+        return jdbc.sql("select %s from settlements where id = :id".formatted(COLUMNS))
+                .param("id", id)
+                .query(MAPPER)
+                .optional();
+    }
+
     public Optional<SettlementRow> findByIdempotencyKey(UUID key) {
         return jdbc.sql("select %s from settlements where idempotency_key = :key".formatted(COLUMNS))
                 .param("key", key)
