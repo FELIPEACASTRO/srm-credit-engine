@@ -72,6 +72,14 @@ export interface StatementPage {
   totalsByCurrency: Record<string, string>;
 }
 
+export interface ExchangeRateDto {
+  id: number;
+  base: string;
+  quote: string;
+  rate: string;
+  validFrom: string;
+}
+
 export interface ProblemDetail {
   status?: number;
   title?: string;

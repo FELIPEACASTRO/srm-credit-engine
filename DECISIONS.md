@@ -12,7 +12,7 @@ Stack: **Java 21 + Spring Boot** (tipagem forte é diferencial declarado; `BigDe
 
 | Grupo | Corte | Economia | Status |
 |---|---|---:|---|
-| A1 | Polimento visual zero (o painel de simulação fica) | 0,5 h | **Acionado** |
+| A1 | Polimento visual zero (o painel de simulação fica) | 0,5 h | ~~Acionado~~ **Revertido a pedido**: identidade "terminal da mesa" (tinta-marinho + âmbar, IBM Plex Mono nos números, equação do deságio como elemento vivo, ticker de câmbio com idade da vigência). Fontes self-hosted (@fontsource — offline no compose); zero libs de UI; testes e acessibilidade intactos |
 | A2 | Keyset → offset/limit justificado | 0,25 h | Não acionado (keyset entregue) |
 | A3 | Banda de sanidade do câmbio → só `rate > 0` + idade | 0,25 h | Não acionado |
 | A5 | `expectedAmount`/`price-changed` → fora | 0,25 h | Não acionado |

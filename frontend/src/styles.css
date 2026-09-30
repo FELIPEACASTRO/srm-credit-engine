@@ -1,114 +1,577 @@
-/* Corte A1 declarado no DECISIONS: legibilidade sim, polimento visual nao. */
+/* =====================================================================
+   SRM Credit Engine — terminal da mesa
+   Tese visual: o número que você pode auditar. Tinta-marinho + âmbar de
+   fósforo (herança dos terminais financeiros), IBM Plex Mono em TODO
+   número, e a equação do deságio exposta como elemento vivo.
+   ===================================================================== */
+
 :root {
-  color-scheme: light;
-  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-  line-height: 1.5;
+  color-scheme: dark;
+
+  /* paleta */
+  --ink-0: #070c16;      /* fundo profundo */
+  --ink-1: #0b1220;      /* fundo da página */
+  --ink-2: #101a2d;      /* superfície de card */
+  --ink-3: #16223a;      /* superfície elevada / inputs */
+  --line: #1f2c47;       /* bordas */
+  --line-soft: #182338;
+  --text: #e8ecf4;
+  --text-mute: #8b96ac;
+  --text-faint: #5d6980;
+  --amber: #ffb020;      /* fósforo: cotações e o número-tese */
+  --amber-soft: rgba(255, 176, 32, 0.12);
+  --green: #3ddc84;      /* liquidada */
+  --green-soft: rgba(61, 220, 132, 0.12);
+  --red: #ff5d5d;        /* erro */
+  --red-soft: rgba(255, 93, 93, 0.1);
+  --blue: #6ea8ff;       /* BRL badge */
+
+  /* tipografia */
+  --font-body: "IBM Plex Sans", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --font-display: "Space Grotesk", var(--font-body);
+
+  --radius: 10px;
+  --radius-sm: 7px;
+}
+
+* {
+  box-sizing: border-box;
 }
 
 body {
   margin: 0;
-  background: #f5f6f8;
-  color: #1c2330;
+  background:
+    radial-gradient(1100px 500px at 85% -10%, rgba(255, 176, 32, 0.05), transparent 60%),
+    radial-gradient(900px 600px at -10% 110%, rgba(110, 168, 255, 0.04), transparent 55%),
+    var(--ink-1);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.55;
+  min-height: 100vh;
 }
 
 main {
-  max-width: 1080px;
+  max-width: 1120px;
   margin: 0 auto;
-  padding: 16px;
+  padding: 0 20px 56px;
   display: grid;
-  gap: 16px;
+  gap: 20px;
 }
 
-header p {
-  color: #5a6478;
-  margin-top: 4px;
+::selection {
+  background: var(--amber-soft);
+  color: var(--amber);
 }
+
+:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ------------------------------------------------------------------ */
+/* Header: marca + ticker de câmbio                                    */
+/* ------------------------------------------------------------------ */
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 4px;
+  margin-bottom: 6px;
+  background: linear-gradient(to bottom, var(--ink-1) 75%, transparent);
+}
+
+.brand {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.brand h1 {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  margin: 0;
+}
+
+.brand h1 .accent {
+  color: var(--amber);
+}
+
+.brand .env {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.14em;
+  color: var(--text-faint);
+  border: 1px solid var(--line);
+  padding: 2px 7px;
+  border-radius: 999px;
+  text-transform: uppercase;
+}
+
+.ticker {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  border: 1px solid var(--line);
+  background: var(--ink-2);
+  padding: 7px 12px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+}
+
+.ticker .pair {
+  color: var(--text-mute);
+  letter-spacing: 0.08em;
+}
+
+.ticker .rate {
+  color: var(--amber);
+  font-weight: 600;
+}
+
+.ticker .age {
+  color: var(--text-faint);
+  font-size: 0.7rem;
+}
+
+.ticker .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--green);
+  animation: pulse 2.4s ease-in-out infinite;
+}
+
+.ticker.stale .dot {
+  background: var(--red);
+  animation: none;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(61, 220, 132, 0.5); }
+  50% { opacity: 0.6; box-shadow: 0 0 0 5px rgba(61, 220, 132, 0); }
+}
+
+/* ------------------------------------------------------------------ */
+/* Cards                                                               */
+/* ------------------------------------------------------------------ */
 
 .card {
-  background: #fff;
-  border: 1px solid #dde1e8;
-  border-radius: 8px;
-  padding: 16px;
+  background: linear-gradient(180deg, var(--ink-2), rgba(16, 26, 45, 0.75));
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius);
+  padding: 22px 24px;
 }
 
-.card.success {
-  border-color: #7bbf8e;
-  background: #f2faf4;
+.card > h2 {
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  font-weight: 500;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--text-mute);
+  margin: 0 0 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
+
+.card > h2::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line-soft);
+}
+
+/* ------------------------------------------------------------------ */
+/* Formulário                                                          */
+/* ------------------------------------------------------------------ */
 
 .fields {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 14px;
 }
 
 label {
   display: grid;
-  gap: 4px;
-  font-size: 0.85rem;
-  font-weight: 600;
+  gap: 6px;
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-mute);
 }
 
 input,
-select,
-button {
-  font: inherit;
-  padding: 6px 10px;
-  border: 1px solid #b9c0cc;
-  border-radius: 6px;
+select {
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  color: var(--text);
+  background: var(--ink-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 9px 12px;
+  transition: border-color 0.15s ease, background 0.15s ease;
 }
 
-button {
-  background: #17335f;
-  color: #fff;
-  border: none;
-  cursor: pointer;
-  padding: 8px 16px;
+input:hover,
+select:hover {
+  border-color: #2b3c60;
 }
 
-button:disabled {
-  background: #9aa4b5;
-  cursor: not-allowed;
+input:focus,
+select:focus {
+  border-color: var(--amber);
+  background: var(--ink-2);
+  outline: none;
 }
 
-.result {
-  min-height: 3.5rem;
-  margin-top: 12px;
+input[aria-invalid="true"] {
+  border-color: var(--red);
 }
 
-.headline {
-  font-size: 1.15rem;
+small.error {
+  font-size: 0.72rem;
+  text-transform: none;
+  letter-spacing: 0;
 }
 
 .error {
-  color: #a2201f;
+  color: var(--red);
 }
+
+p[role="alert"] {
+  background: var(--red-soft);
+  border: 1px solid rgba(255, 93, 93, 0.35);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  font-size: 0.86rem;
+}
+
+/* ------------------------------------------------------------------ */
+/* A equação viva — assinatura da página                               */
+/* ------------------------------------------------------------------ */
+
+.result {
+  min-height: 150px;
+  margin-top: 20px;
+}
+
+.headline-label {
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-mute);
+  margin: 0 0 2px;
+}
+
+.headline {
+  font-family: var(--font-mono);
+  font-size: clamp(2rem, 5vw, 2.9rem);
+  font-weight: 600;
+  color: var(--amber);
+  margin: 0 0 16px;
+  letter-spacing: -0.01em;
+  text-shadow: 0 0 32px rgba(255, 176, 32, 0.25);
+  font-variant-numeric: tabular-nums;
+  animation: settle-in 0.35s ease-out;
+}
+
+@keyframes settle-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+.equation {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.eq-chip {
+  display: grid;
+  align-content: center;
+  gap: 2px;
+  background: var(--ink-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  min-width: 92px;
+  animation: settle-in 0.35s ease-out backwards;
+}
+
+.eq-chip:nth-child(2) { animation-delay: 0.05s; }
+.eq-chip:nth-child(4) { animation-delay: 0.1s; }
+.eq-chip:nth-child(6) { animation-delay: 0.15s; }
+.eq-chip:nth-child(8) { animation-delay: 0.2s; }
+
+.eq-chip .k {
+  font-size: 0.6rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.eq-chip .v {
+  font-family: var(--font-mono);
+  font-size: 0.88rem;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.eq-chip.out {
+  border-color: rgba(255, 176, 32, 0.45);
+  background: var(--amber-soft);
+}
+
+.eq-chip.out .v {
+  color: var(--amber);
+  font-weight: 600;
+}
+
+.eq-op {
+  align-self: center;
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  padding: 0 2px;
+}
+
+.loading {
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+}
+
+.loading::after {
+  content: "▮";
+  animation: blink 1s steps(2) infinite;
+  margin-left: 4px;
+  color: var(--amber);
+}
+
+@keyframes blink {
+  50% { opacity: 0; }
+}
+
+/* ------------------------------------------------------------------ */
+/* Botões                                                              */
+/* ------------------------------------------------------------------ */
+
+button {
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--ink-0);
+  background: linear-gradient(180deg, #ffc14d, var(--amber));
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 11px 22px;
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease;
+  box-shadow: 0 2px 14px rgba(255, 176, 32, 0.18);
+}
+
+button:hover:not(:disabled) {
+  filter: brightness(1.06);
+  box-shadow: 0 4px 22px rgba(255, 176, 32, 0.3);
+}
+
+button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+button:disabled {
+  background: var(--ink-3);
+  color: var(--text-faint);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+button.ghost {
+  background: transparent;
+  color: var(--text-mute);
+  border: 1px solid var(--line);
+  box-shadow: none;
+}
+
+button.ghost:hover:not(:disabled) {
+  color: var(--text);
+  border-color: #2b3c60;
+}
+
+.actions {
+  margin-top: 18px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+/* ------------------------------------------------------------------ */
+/* Carimbo de liquidação                                               */
+/* ------------------------------------------------------------------ */
+
+.card.success {
+  margin-top: 18px;
+  border-color: rgba(61, 220, 132, 0.4);
+  background: linear-gradient(180deg, rgba(61, 220, 132, 0.07), rgba(16, 26, 45, 0.6));
+  animation: settle-in 0.3s ease-out;
+}
+
+.card.success h3 {
+  font-family: var(--font-display);
+  margin: 0 0 8px;
+  font-size: 1rem;
+  color: var(--green);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.card.success h3::before {
+  content: "✓";
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--green-soft);
+  border: 1px solid rgba(61, 220, 132, 0.5);
+  font-size: 0.7rem;
+}
+
+.card.success p {
+  margin: 0;
+  color: var(--text-mute);
+  font-size: 0.88rem;
+}
+
+.card.success strong {
+  font-family: var(--font-mono);
+  color: var(--text);
+}
+
+/* ------------------------------------------------------------------ */
+/* Ledger (extrato)                                                    */
+/* ------------------------------------------------------------------ */
 
 table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 12px;
+  margin-top: 16px;
+  font-size: 0.86rem;
 }
 
-th,
-td {
+thead th {
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-faint);
   text-align: left;
-  padding: 6px 8px;
-  border-bottom: 1px solid #e3e6ec;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line);
+}
+
+tbody td {
+  padding: 11px 10px;
+  border-bottom: 1px solid var(--line-soft);
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+tbody tr {
+  transition: background 0.12s ease;
+}
+
+tbody tr:hover {
+  background: rgba(255, 176, 32, 0.04);
+  box-shadow: inset 2px 0 0 var(--amber);
+}
+
+td.mute {
+  color: var(--text-mute);
+}
+
+td.money {
+  text-align: right;
+}
+
+th.money {
+  text-align: right;
+}
+
+.badge {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  color: var(--text-mute);
+}
+
+.badge.usd {
+  color: var(--green);
+  border-color: rgba(61, 220, 132, 0.4);
+  background: var(--green-soft);
+}
+
+.badge.brl {
+  color: var(--blue);
+  border-color: rgba(110, 168, 255, 0.35);
+  background: rgba(110, 168, 255, 0.1);
+}
+
+.empty {
+  color: var(--text-faint);
+  text-align: center;
+  padding: 26px 10px !important;
+  font-family: var(--font-body) !important;
 }
 
 .grid-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin-top: 12px;
+  gap: 14px;
+  margin-top: 16px;
   flex-wrap: wrap;
 }
 
+.totals {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin: 0;
+}
+
 .total {
-  margin-right: 16px;
+  font-size: 0.8rem;
+  color: var(--text-mute);
+}
+
+.total strong {
+  font-family: var(--font-mono);
+  color: var(--amber);
+  font-weight: 600;
 }
 
 .sr-only {
@@ -117,4 +580,25 @@ td {
   height: 1px;
   overflow: hidden;
   clip: rect(0 0 0 0);
+}
+
+/* ------------------------------------------------------------------ */
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .topbar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .card {
+    padding: 16px;
+  }
 }
