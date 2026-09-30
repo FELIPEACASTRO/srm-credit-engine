@@ -119,6 +119,7 @@
 					</includes>
 					<groups>${test.groups}</groups>
 					<excludedGroups>${test.excludedGroups}</excludedGroups>
+					<runOrder>alphabetical</runOrder>
 				</configuration>
 			</plugin>
 		</plugins>

@@ -141,16 +141,27 @@ class SettlementServiceIT extends IntegrationTestBase {
     @Test
     @DisplayName("face 5: replay depois do cambio mudar devolve o MESMO valor e o MESMO fx_rate_id (nunca re-precifica)")
     void replayAfterFxChange() {
-        long id = newReceivable("100000.00", "USD", 3);
+        // moeda propria do teste: nao contamina o USD/BRL do seed usado por outras classes
+        jdbc.sql("insert into currencies (code, minor_units) values ('ZBY', 2) on conflict do nothing")
+                .update();
+        jdbc.sql("""
+                        insert into exchange_rates (base, quote, rate, valid_from, source, created_by)
+                        values ('ZBY', 'BRL', 5.43210000, now() - interval '1 minute', 'test', 'test')
+                        """).update();
+        long id = receivables.register(new RegisterReceivableCommand(
+                        1L, "DUPLICATA", "100000.00", "ZBY",
+                        LocalDate.now().plusMonths(3), UUID.randomUUID()))
+                .receivable().id();
         UUID key = UUID.randomUUID();
 
         SettlementOutcome first = service.settle(cmd(id, key));
         assertNotNull(first.settlement().fxRateId());
+        assertEquals("17094.67", first.settlement().paidAmount().toPlainString());
 
-        // nova cotacao vigente
+        // nova cotacao vigente do par proprio
         jdbc.sql("""
                         insert into exchange_rates (base, quote, rate, valid_from, source, created_by)
-                        values ('USD', 'BRL', 5.00000000, now(), 'test', 'test')
+                        values ('ZBY', 'BRL', 5.00000000, now(), 'test', 'test')
                         """).update();
 
         SettlementOutcome replay = service.settle(cmd(id, key));
