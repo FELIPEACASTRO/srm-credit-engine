@@ -13,7 +13,7 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class SettlementRepository {
 
-    static final RowMapper<SettlementRow> MAPPER = (rs, i) -> new SettlementRow(
+    public static final RowMapper<SettlementRow> MAPPER = (rs, i) -> new SettlementRow(
             rs.getLong("id"),
             rs.getLong("receivable_id"),
             rs.getLong("cedente_id"),
