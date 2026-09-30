@@ -97,6 +97,26 @@ class ContractIT extends WebIntegrationTestBase {
     }
 
     @Test
+    @DisplayName("Idempotency-Key mal formada (nao-UUID) -> 400 invalid-idempotency-key, distinta de ausente (R4)")
+    void malformedIdempotencyKeyIsDistinct() throws Exception {
+        String body = """
+                {"cedenteId":1,"type":"DUPLICATA","faceValue":"100.00",
+                 "paymentCurrency":"BRL","dueDate":"%s"}
+                """.formatted(LocalDate.now().plusMonths(2));
+        // ausente -> missing
+        mvc.perform(post("/api/v1/receivables")
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("missing-idempotency-key"));
+        // presente porem mal formada -> invalid (code distinto, mesmo 400)
+        mvc.perform(post("/api/v1/receivables")
+                        .header("Idempotency-Key", "nao-e-uuid")
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("invalid-idempotency-key"));
+    }
+
+    @Test
     @DisplayName("fluxo completo: cadastro 201+Location -> liquidacao 201+Location -> replay 200 identico -> outra chave 409")
     void fullSettlementFlow() throws Exception {
         String registerBody = """

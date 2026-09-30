@@ -24,6 +24,14 @@ class MoneyAndRateTest {
     }
 
     @Test
+    @DisplayName("MonthlyRate: mais de 6 casas nao cabe em NUMERIC(9,6) -> erro na construcao (R3)")
+    void taxaComEscalaAcimaDe6Rejeitada() {
+        assertThrows(IllegalArgumentException.class, () -> MonthlyRate.of("0.0155555"));
+        // ate 6 casas passa (limite do snapshot base_rate/spread)
+        assertEquals("0.015500", MonthlyRate.of("0.015500").value().toPlainString());
+    }
+
+    @Test
     @DisplayName("Money: nasce de string valida; lixo e rejeitado")
     void moneyDeString() {
         assertEquals("100000.00", Money.of("100000.00", Currency.BRL).amount().toPlainString());
