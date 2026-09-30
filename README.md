@@ -12,6 +12,8 @@ Plataforma de cessão de crédito multimoedas (BRL/USD): precifica recebíveis c
 docker compose up --build
 ```
 
+No **Windows**, um duplo clique resolve: **`srm.bat`** (ou `srm.bat start|stop|reset|status|logs`). Ele detecta o ambiente sozinho — com o Docker Desktop rodando usa o Compose acima; sem Docker, cai para o modo local (JDK 21+ + Node, PostgreSQL embarcado) com o Maven do PATH ou o wrapper do projeto. Nenhum caminho de máquina é assumido. O Compose continua sendo o caminho canônico e multiplataforma; o `.bat` é conveniência.
+
 | Serviço | URL |
 |---|---|
 | Painel da mesa (web) | http://localhost |
