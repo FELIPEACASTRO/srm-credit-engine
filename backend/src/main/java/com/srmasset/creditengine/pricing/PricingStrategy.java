@@ -12,4 +12,7 @@ public interface PricingStrategy {
     String type();
 
     BigDecimal presentValueRaw(BigDecimal faceValue, MonthlyRate baseRate, int termMonths);
+
+    /** Spread incremental do tipo — vai ao snapshot de auditoria para reproduzir o cálculo. */
+    MonthlyRate spread();
 }

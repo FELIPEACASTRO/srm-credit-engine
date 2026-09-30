@@ -19,11 +19,14 @@ public class ExchangeRateService {
     private static final BigDecimal BAND = new BigDecimal("0.10");
 
     private final ExchangeRateRepository repository;
+    private final com.srmasset.creditengine.rates.CurrencyRepository currencies;
     private final Duration maxAge;
 
     public ExchangeRateService(ExchangeRateRepository repository,
+            com.srmasset.creditengine.rates.CurrencyRepository currencies,
             @Value("${app.fx.max-age:PT24H}") Duration maxAge) {
         this.repository = repository;
+        this.currencies = currencies;
         this.maxAge = maxAge;
     }
 
@@ -56,7 +59,7 @@ public class ExchangeRateService {
         if (value.signum() <= 0) {
             throw new IllegalArgumentException("Taxa deve ser positiva: " + rate);
         }
-        if (!repository.currencyExists(base) || !repository.currencyExists(quote)) {
+        if (currencies.find(base).isEmpty() || currencies.find(quote).isEmpty()) {
             throw new IllegalArgumentException("Par com moeda desconhecida: " + base + "/" + quote);
         }
         repository.asOf(base, quote, validFrom).ifPresent(currentRow -> {

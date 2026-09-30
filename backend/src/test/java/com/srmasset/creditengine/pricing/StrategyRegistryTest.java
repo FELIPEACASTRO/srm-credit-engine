@@ -3,8 +3,6 @@ package com.srmasset.creditengine.pricing;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import java.math.BigDecimal;
-import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -26,18 +24,8 @@ class StrategyRegistryTest {
     @Test
     @DisplayName("registrar um tipo novo nao altera os existentes")
     void tipoNovoNaoAlteraExistentes() {
-        PricingStrategy promissoria = new PricingStrategy() {
-            @Override public String type() {
-                return "NOTA_PROMISSORIA";
-            }
-
-            @Override public BigDecimal presentValueRaw(
-                    BigDecimal faceValue, MonthlyRate baseRate, int termMonths) {
-                return faceValue.divide(
-                        DiscountFactor.additiveCompound(baseRate, MonthlyRate.of("0.02"), termMonths),
-                        java.math.MathContext.DECIMAL128);
-            }
-        };
+        PricingStrategy promissoria =
+                new AdditiveDiscountStrategy("NOTA_PROMISSORIA", MonthlyRate.of("0.02"));
 
         StrategyRegistry registry = StrategyRegistry.withDefaults().plus(promissoria);
         PricingEngine engine = new PricingEngine(registry);
