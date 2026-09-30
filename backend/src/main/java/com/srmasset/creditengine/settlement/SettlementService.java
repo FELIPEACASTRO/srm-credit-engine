@@ -89,8 +89,10 @@ public class SettlementService {
             throw new AlreadySettledException(receivable.id());
         }
 
-        // 3. resolucoes e calculo FORA da transacao
-        Instant now = clock.instant();
+        // 3. resolucoes e calculo FORA da transacao.
+        // Truncado a micros: timestamptz do PostgreSQL guarda microssegundos, e o replay
+        // (lido do banco) deve ser byte a byte identico a resposta original (em memoria).
+        Instant now = clock.instant().truncatedTo(java.time.temporal.ChronoUnit.MICROS);
         LocalDate today = LocalDate.now(clock);
         BaseRate baseRate = baseRates.asOf(now)
                 .orElseThrow(() -> new IllegalStateException("Sem taxa base vigente"));

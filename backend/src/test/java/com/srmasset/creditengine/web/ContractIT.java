@@ -65,13 +65,20 @@ class ContractIT extends WebIntegrationTestBase {
     }
 
     @Test
-    @DisplayName("faceValue como numero JSON (nao string) -> 422: a fronteira rejeita number para dinheiro")
-    void moneyAsJsonNumberRejected() throws Exception {
+    @DisplayName("entrada de dinheiro exige formato canonico d+.dd: notacao cientifica e escala errada -> 4xx")
+    void moneyInputFormatEnforced() throws Exception {
+        // numero JSON em notacao cientifica: nunca aceito
         mvc.perform(post("/api/v1/simulations")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"type":"DUPLICATA","faceValue":100000.00,"paymentCurrency":"BRL","dueDate":"%s"}
+                                {"type":"DUPLICATA","faceValue":1e5,"paymentCurrency":"BRL","dueDate":"%s"}
                                 """.formatted(LocalDate.now().plusMonths(3))))
+                .andExpect(status().is4xxClientError());
+        // string sem as 2 casas: 422 por validacao de padrao
+        mvc.perform(post("/api/v1/simulations")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(simulationBody("DUPLICATA", "100000", "BRL",
+                                LocalDate.now().plusMonths(3))))
                 .andExpect(status().isUnprocessableEntity());
     }
 
