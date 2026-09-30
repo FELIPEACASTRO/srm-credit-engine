@@ -37,8 +37,11 @@ interface IntentionKeys {
 export function SettleDialog({ form, expectedAmount, client = apiClient,
     operator = "mesa", onSettled }: Props) {
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [done, setDone] = useState<Idempotent<SettlementResponse> | null>(null);
+  // resultado/erro carregam a intencao que os produziu; assim a UI nunca mostra o card de
+  // sucesso (ou o erro) de uma intencao anterior sob um formulario ja alterado — sem
+  // recorrer a setState durante o render (anti-padrao que causava o "flash" de dados velhos).
+  const [done, setDone] = useState<{ result: Idempotent<SettlementResponse>; intention: string } | null>(null);
+  const [error, setError] = useState<{ message: string; intention: string } | null>(null);
   const busyRef = useRef(false);
   const keysRef = useRef<IntentionKeys | null>(null);
 
@@ -49,22 +52,20 @@ export function SettleDialog({ form, expectedAmount, client = apiClient,
       creationKey: uuidv4(),
       settleKey: uuidv4(),
     };
-    if (done || error) {
-      // intencao nova: resultado anterior nao se aplica mais
-      setDone(null);
-      setError(null);
-    }
   }
+  const currentDone = done?.intention === intention ? done.result : null;
+  const currentError = error?.intention === intention ? error.message : null;
 
   async function run() {
     if (busyRef.current) {
       return;
     }
+    const keys = keysRef.current!;
+    const forIntention = keys.intention;
     busyRef.current = true;
     setBusy(true);
     setError(null);
     try {
-      const keys = keysRef.current!;
       const registered: Idempotent<ReceivableResponse> = await client.registerReceivable({
         cedenteId: Number(form.cedenteId),
         type: form.type,
@@ -74,25 +75,24 @@ export function SettleDialog({ form, expectedAmount, client = apiClient,
       }, keys.creationKey);
       const settled = await client.settle(
           registered.body.id, keys.settleKey, expectedAmount, operator);
-      setDone(settled);
+      setDone({ result: settled, intention: forIntention });
       onSettled?.(settled.body);
     } catch (e) {
-      if (e instanceof ApiError) {
-        setError(`${e.code ?? e.status}: ${e.message}`);
-      } else {
-        setError((e as Error).message);
-      }
+      const message = e instanceof ApiError
+          ? `${e.code ?? e.status}: ${e.message}`
+          : (e as Error).message;
+      setError({ message, intention: forIntention });
     } finally {
       busyRef.current = false;
       setBusy(false);
     }
   }
 
-  if (done) {
-    const s = done.body;
+  if (currentDone) {
+    const s = currentDone.body;
     return (
       <section className="card success" aria-live="polite">
-        <h3>Liquidação nº {s.id} registrada{done.replayed ? " · replay idempotente" : ""}</h3>
+        <h3>Liquidação nº {s.id} registrada{currentDone.replayed ? " · replay idempotente" : ""}</h3>
         <p>
           Pago <strong>{formatMoney(s.paid.amount, s.paid.currency)}</strong> · deságio{" "}
           <strong>{formatMoney(s.discount.amount, s.discount.currency)}</strong> · câmbio{" "}
@@ -105,11 +105,11 @@ export function SettleDialog({ form, expectedAmount, client = apiClient,
   return (
     <div className="actions">
       <button type="button" disabled={busy} onClick={run}>
-        {busy ? "Liquidando…" : error ? "Tentar novamente" : "Cadastrar e liquidar"}
+        {busy ? "Liquidando…" : currentError ? "Tentar novamente" : "Cadastrar e liquidar"}
       </button>
-      {error && (
+      {currentError && (
         <p role="alert" className="error" style={{ margin: 0 }}>
-          Falha ao liquidar — {error}
+          Falha ao liquidar — {currentError}
         </p>
       )}
     </div>

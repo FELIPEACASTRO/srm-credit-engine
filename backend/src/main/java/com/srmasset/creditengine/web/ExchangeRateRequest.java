@@ -10,5 +10,7 @@ public record ExchangeRateRequest(
         @NotBlank @Pattern(regexp = "[A-Z]{3}") String quote,
         @NotBlank @Pattern(regexp = "\\d+(\\.\\d+)?", message = "taxa decimal positiva")
         String rate,
-        @NotNull Instant validFrom) {
+        @NotNull Instant validFrom,
+        /** Ignora conscientemente a banda de sanidade de 10% (choque cambial real). Default: false. */
+        Boolean override) {
 }

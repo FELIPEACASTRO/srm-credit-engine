@@ -4,6 +4,8 @@ import java.math.BigDecimal;
 import java.math.MathContext;
 import java.time.Duration;
 import java.time.Instant;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -15,6 +17,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class ExchangeRateService {
 
+    private static final Logger log = LoggerFactory.getLogger(ExchangeRateService.class);
     private static final String RATE_PATTERN = "\\d+(\\.\\d+)?";
     private static final BigDecimal BAND = new BigDecimal("0.10");
 
@@ -32,6 +35,11 @@ public class ExchangeRateService {
 
     /** Cotação utilizável no instante: vigente mais recente, com idade <= FX_MAX_AGE. */
     public ExchangeRateRow current(String base, String quote, Instant at) {
+        // Par com moeda inexistente e erro do cliente (422), nao indisponibilidade (503):
+        // 503 diria "tente de novo", mas nenhuma cotacao vai existir para uma moeda que nao ha.
+        if (currencies.find(base).isEmpty() || currencies.find(quote).isEmpty()) {
+            throw new IllegalArgumentException("Par com moeda desconhecida: " + base + "/" + quote);
+        }
         ExchangeRateRow row = repository.asOf(base, quote, at)
                 .orElseThrow(() -> new FxRateUnavailableException(
                         "Sem cotacao vigente para " + base + "/" + quote));
@@ -48,10 +56,17 @@ public class ExchangeRateService {
     /**
      * Atualização manual (4.1.1) com banda de sanidade: desvio > 10% contra a vigente no
      * instante da nova vigência é tratado como fat finger. Primeira cotação do par não tem
-     * referência — a banda não se aplica.
+     * referência — a banda não se aplica. {@code override=true} conscientemente ignora a
+     * banda (choque cambial real que excede 10%), registrando quem forçou.
      */
+    /** Sobrecarga sem override (feeder, seeds): a banda de sanidade sempre vale. */
     public ExchangeRateRow register(String base, String quote, String rate, Instant validFrom,
             String actor) {
+        return register(base, quote, rate, validFrom, actor, false);
+    }
+
+    public ExchangeRateRow register(String base, String quote, String rate, Instant validFrom,
+            String actor, boolean override) {
         if (rate == null || !rate.matches(RATE_PATTERN)) {
             throw new IllegalArgumentException("Taxa invalida: '" + rate + "'");
         }
@@ -66,10 +81,16 @@ public class ExchangeRateService {
             BigDecimal deviation = value.divide(currentRow.rate(), MathContext.DECIMAL64)
                     .subtract(BigDecimal.ONE).abs();
             if (deviation.compareTo(BAND) > 0) {
-                throw new RateOutOfBandException(
-                        "Taxa " + rate + " desvia " + deviation.movePointRight(2).toPlainString()
-                                + "% da vigente " + currentRow.rate().toPlainString()
-                                + " (banda de 10%)");
+                if (!override) {
+                    throw new RateOutOfBandException(
+                            "Taxa " + rate + " desvia "
+                                    + deviation.movePointRight(2).toPlainString()
+                                    + "% da vigente " + currentRow.rate().toPlainString()
+                                    + " (banda de 10%). Reenvie com override=true se for real.");
+                }
+                log.warn("Cotacao {}/{} = {} forcada por {} (desvio {}% da vigente {})",
+                        base, quote, rate, actor, deviation.movePointRight(2).toPlainString(),
+                        currentRow.rate().toPlainString());
             }
         });
         long id = repository.insert(base, quote, value, validFrom, "manual", actor);

@@ -197,6 +197,23 @@ class ContractIT extends WebIntegrationTestBase {
                                 """.formatted(java.time.Instant.now())))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.code").value("rate-out-of-band"));
+
+        // override=true registra conscientemente a mesma taxa fora da banda (choque real)
+        mvc.perform(post("/api/v1/exchange-rates")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"base":"USD","quote":"ZBX","rate":"99.99","validFrom":"%s","override":true}
+                                """.formatted(java.time.Instant.now())))
+                .andExpect(status().isCreated());
+    }
+
+    @Test
+    @DisplayName("GET /current com moeda inexistente -> 422 (culpa do cliente), nunca 503")
+    void currentWithUnknownCurrencyIs422() throws Exception {
+        mvc.perform(get("/api/v1/exchange-rates/current")
+                        .param("base", "ZZZ").param("quote", "BRL"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.code").value("invalid-input"));
     }
 
     @Test

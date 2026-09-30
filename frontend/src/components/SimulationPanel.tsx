@@ -89,7 +89,7 @@ export function SimulationPanel() {
         {data && !loading && faceValue && <LiveEquation data={data} face={faceValue} />}
       </div>
 
-      {data && faceValue && (
+      {data && faceValue && !loading && (
         <SettleDialog
           form={{ cedenteId, type, faceValue, paymentCurrency: currency, dueDate }}
           expectedAmount={data.paid.amount}
