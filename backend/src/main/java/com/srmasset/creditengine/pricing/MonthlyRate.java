@@ -14,6 +14,12 @@ public record MonthlyRate(BigDecimal value) {
             throw new IllegalArgumentException(
                     "Taxa mensal deve ser fracao decimal em [0, 1): " + value);
         }
+        // Persistida em NUMERIC(9,6): mais de 6 casas nao cabe. Falha aqui, na construcao da
+        // strategy/taxa, em vez de estourar ArithmeticException no setScale(6) da liquidacao (R3).
+        if (value.scale() > 6) {
+            throw new IllegalArgumentException(
+                    "Taxa mensal com mais de 6 casas decimais nao cabe em NUMERIC(9,6): " + value);
+        }
     }
 
     public static MonthlyRate of(String value) {

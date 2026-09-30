@@ -50,6 +50,12 @@ public class GlobalExceptionHandler {
                 .body(problem(HttpStatus.BAD_REQUEST, "missing-idempotency-key", e.getMessage()));
     }
 
+    @ExceptionHandler(InvalidIdempotencyKeyException.class)
+    ResponseEntity<ProblemDetail> invalidKey(InvalidIdempotencyKeyException e) {
+        return ResponseEntity.badRequest()
+                .body(problem(HttpStatus.BAD_REQUEST, "invalid-idempotency-key", e.getMessage()));
+    }
+
     @ExceptionHandler({ReceivableNotFoundException.class, CedenteNotFoundException.class,
             SettlementNotFoundException.class})
     ResponseEntity<ProblemDetail> notFound(RuntimeException e) {

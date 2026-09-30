@@ -40,7 +40,7 @@ public class ExchangeRateController {
             @Valid @RequestBody ExchangeRateRequest request) {
         ExchangeRateResponse body = ExchangeRateResponse.of(service.register(
                 request.base(), request.quote(), request.rate(), request.validFrom(), operator,
-                Boolean.TRUE.equals(request.override())));
+                "manual", Boolean.TRUE.equals(request.override())));
         return ResponseEntity.created(URI.create("/api/v1/exchange-rates/" + body.id()))
                 .body(body);
     }

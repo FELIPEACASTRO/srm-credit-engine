@@ -9,8 +9,9 @@ import {
 } from "../lib/urlFilters";
 
 /**
- * Filtros e cursor do extrato vivem NA URL (sem store global — premissa D16): recarregar,
- * compartilhar ou voltar preserva a visão. Mudar um filtro reseta o cursor.
+ * Filtros e cursor do extrato vivem NA URL (sem store global — premissa D16): recarregar ou
+ * compartilhar o link preserva a visão. Usa `replaceState` (não empilha histórico); o botão
+ * Voltar sai do SPA, o que é aceitável sem router. Mudar um filtro reseta o cursor.
  */
 export function useStatementFilters():
     [StatementFilters, (patch: StatementFilters) => void] {

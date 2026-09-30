@@ -130,7 +130,8 @@ public class SettlementService {
                 0, receivable.id(), receivable.cedenteId(), cmd.idempotencyKey(), hash,
                 receivable.type(), receivable.faceValue(), termMonths, today,
                 baseRate.id(), baseRate.monthlyRate(),
-                registry.require(receivable.type()).spread().value().setScale(6),
+                registry.require(receivable.type()).spread().value()
+                        .setScale(6, java.math.RoundingMode.UNNECESSARY),
                 rounding.mode().name(),
                 result.presentValueBrl().amount(), result.discountBrl().amount(),
                 payment.code(), result.paidAmount().amount(),

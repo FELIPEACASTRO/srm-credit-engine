@@ -14,6 +14,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       APP_DB_PASSWORD: ${APP_DB_PASSWORD:-credit_engine_app}
+    restart: unless-stopped
     volumes:
       - db-data:/var/lib/postgresql/data
     healthcheck:
@@ -25,9 +26,18 @@ services:
 
   api:
     build: ./backend
+    restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
+    healthcheck:
+      # A porta 8080 so abre no fim do startup do Spring (apos Flyway) — porta aberta ~ pronto.
+      # bash + /dev/tcp: zero dependencia extra na imagem JRE (sem curl/wget).
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/8080'"]
+      interval: 5s
+      timeout: 3s
+      retries: 40
+      start_period: 30s
     environment:
       DB_URL: jdbc:postgresql://db:5432/credit_engine
       DB_USER: credit_engine_app
@@ -42,8 +52,10 @@ services:
 
   web:
     build: ./frontend
+    restart: unless-stopped
     depends_on:
-      - api
+      api:
+        condition: service_healthy
     ports:
       - "80:80"
 

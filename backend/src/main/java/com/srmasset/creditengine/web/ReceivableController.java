@@ -57,9 +57,10 @@ public class ReceivableController {
             throw new MissingIdempotencyKeyException();
         }
         try {
-            return UUID.fromString(raw);
+            return UUID.fromString(raw.trim());
         } catch (IllegalArgumentException e) {
-            throw new MissingIdempotencyKeyException();
+            // presente porem mal formada: erro distinto de ausente (code proprio, mesmo 400)
+            throw new InvalidIdempotencyKeyException();
         }
     }
 }

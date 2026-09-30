@@ -61,21 +61,28 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Nenhum float/double/Math.pow/toFixed no caminho do dinheiro (backend)
+      - name: Nenhum float/double no caminho do dinheiro (backend)
         run: |
-          HITS=$(grep -rnE '\b(double|float)\b|Math\.pow|toFixed' \
+          # Cobre double/float/Double/Float/doubleValue/parseDouble/floatValue/Math.pow/toFixed.
+          # NAO cega mais o dir fx/provider inteiro (R10): exclui so a linha do backoff
+          # (Math.pow(2,...)), que e temporizacao, nao dinheiro.
+          HITS=$(grep -rnE '\b(double|float|Double|Float)\b|doubleValue|parseDouble|floatValue|Math\.pow|toFixed' \
             backend/src/main/java/com/srmasset/creditengine --include='*.java' \
-            | grep -v 'fx/provider' \
-            | grep -vE ':[0-9]+:\s*(\*|//|/\*)' || true)
+            | grep -vE ':[0-9]+:\s*(\*|//|/\*)' \
+            | grep -v 'Math.pow(2' || true)
           if [ -n "$HITS" ]; then
             echo "Float binario no caminho do dinheiro:"; echo "$HITS"; exit 1
           fi
-      - name: Nenhuma concatenacao dentro de sql() (backend)
+      - name: Nenhuma interpolacao dinamica em SQL (backend)
         run: |
+          # (a) concatenacao com variavel dentro de sql()
           HITS=$(grep -rn 'sql(' backend/src/main/java --include='*.java' -A2 \
             | grep -E '"\s*\+\s*[a-zA-Z]' || true)
-          if [ -n "$HITS" ]; then
-            echo "SQL concatenado com variavel:"; echo "$HITS"; exit 1
+          # (b) .formatted() em SQL so pode receber CONSTANTE (identificador MAIUSCULO como
+          #     COLUMNS/WHERE); qualquer arg iniciando por minuscula = variavel interpolada (R9)
+          HITS2=$(grep -rnE '\.formatted\([^A-Z)]' backend/src/main/java --include='*.java' || true)
+          if [ -n "$HITS" ] || [ -n "$HITS2" ]; then
+            echo "SQL com interpolacao dinamica:"; echo "$HITS"; echo "$HITS2"; exit 1
           fi
       - name: Nenhum parseFloat/toFixed no frontend
         run: |

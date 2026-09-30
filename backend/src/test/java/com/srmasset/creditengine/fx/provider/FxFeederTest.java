@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -50,14 +51,16 @@ class FxFeederTest {
             calls.incrementAndGet();
             return new ProviderQuote(new BigDecimal("5.4400"), CLOCK.instant());
         };
-        when(rates.register(anyString(), anyString(), anyString(), any(), anyString()))
+        when(rates.register(anyString(), anyString(), anyString(), any(), anyString(),
+                anyString(), anyBoolean()))
                 .thenReturn(new ExchangeRateRow(1, "USD", "BRL",
                         new BigDecimal("5.4400"), CLOCK.instant()));
 
         assertTrue(feeder(ok, 800).fetchAndStore("USD", "BRL"));
         assertEquals(1, calls.get());
         assertTrue(sleeps.isEmpty(), "sem backoff no sucesso");
-        verify(rates).register("USD", "BRL", "5.4400", CLOCK.instant(), "feeder");
+        // source 'feeder' (R2), nao 'manual', e sem override
+        verify(rates).register("USD", "BRL", "5.4400", CLOCK.instant(), "feeder", "feeder", false);
     }
 
     @Test
@@ -73,7 +76,7 @@ class FxFeederTest {
         assertEquals(3, calls.get(), "exatamente 3 tentativas");
         assertEquals(2, sleeps.size(), "backoff entre tentativas (nao apos a ultima)");
         assertTrue(sleeps.get(1) > sleeps.get(0), "backoff cresce");
-        verify(rates, never()).register(anyString(), anyString(), anyString(), any(), anyString());
+        verify(rates, never()).register(anyString(), anyString(), anyString(), any(), anyString(), anyString(), anyBoolean());
     }
 
     @Test
@@ -93,7 +96,7 @@ class FxFeederTest {
         long elapsedMs = (System.nanoTime() - start) / 1_000_000;
 
         assertTrue(elapsedMs < 3_000, "abortou pelo timeout, nao esperou o provedor: " + elapsedMs);
-        verify(rates, never()).register(anyString(), anyString(), anyString(), any(), anyString());
+        verify(rates, never()).register(anyString(), anyString(), anyString(), any(), anyString(), anyString(), anyBoolean());
     }
 
     @Test
@@ -101,9 +104,42 @@ class FxFeederTest {
     void outOfBandQuoteSkipped() {
         FxProviderClient ok = (base, quote) ->
                 new ProviderQuote(new BigDecimal("9.99"), CLOCK.instant());
-        when(rates.register(anyString(), anyString(), anyString(), any(), anyString()))
+        when(rates.register(anyString(), anyString(), anyString(), any(), anyString(),
+                anyString(), anyBoolean()))
                 .thenThrow(new RateOutOfBandException("desvio de 84%"));
 
         assertFalse(feeder(ok, 800).fetchAndStore("USD", "BRL"));
+    }
+
+    @Test
+    @DisplayName("provedor que IGNORA a interrupcao nao trava o feeder: chamada seguinte funciona (R5)")
+    void hangingProviderDoesNotWedgeFeeder() {
+        // 1a chamada: provedor engole a interrupcao (nao volta) -> timeout, tentativa abortada.
+        FxProviderClient uninterruptible = (base, quote) -> {
+            long until = System.nanoTime() + 2_000_000_000L;
+            while (System.nanoTime() < until) {
+                // laco de CPU que NAO responde a Thread.interrupt (pior caso do R5)
+            }
+            return new ProviderQuote(new BigDecimal("5.0"), CLOCK.instant());
+        };
+        FxFeeder feeder1 = feeder(uninterruptible, 100);
+        assertFalse(feeder1.fetchAndStore("USD", "BRL"), "timeout no provedor travado");
+
+        // 2a chamada, provedor OK: tem que funcionar de imediato — o executor por-chamada
+        // impede que a task presa da 1a bloqueie esta (era o bug do pool de 1 thread).
+        when(rates.register(anyString(), anyString(), anyString(), any(), anyString(),
+                anyString(), anyBoolean()))
+                .thenReturn(new ExchangeRateRow(2, "USD", "BRL",
+                        new BigDecimal("5.4400"), CLOCK.instant()));
+        long start = System.nanoTime();
+        assertTrue(feeder(okQuote(), 800).fetchAndStore("USD", "BRL"),
+                "a chamada seguinte nao pode ficar presa atras da anterior");
+        long elapsedMs = (System.nanoTime() - start) / 1_000_000;
+        assertTrue(elapsedMs < 3_000, "sem bloqueio residual: " + elapsedMs + "ms");
+    }
+
+    private static FxProviderClient okQuote() {
+        return (base, quote) -> new ProviderQuote(new BigDecimal("5.4400"),
+                Instant.parse("2026-09-30T12:00:00Z"));
     }
 }

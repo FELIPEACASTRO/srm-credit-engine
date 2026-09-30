@@ -18,6 +18,19 @@ public class ExchangeRateRepository {
     }
 
     /**
+     * Lock consultivo por PAR, valido ate o fim da transacao. Serializa registros
+     * concorrentes do mesmo par para que o check-then-act (asOf da banda + insert) seja
+     * atomico — duas cotacoes opostas nao furam a banda numa corrida sub-ms.
+     */
+    public void lockPair(String base, String quote) {
+        String pair = base + "/" + quote;
+        jdbc.sql("select pg_advisory_xact_lock(hashtext(:pair))")
+                .param("pair", pair)
+                .query(Object.class)
+                .optional();
+    }
+
+    /**
      * Vigente mais recente com valid_from <= instante (fronteira inclusiva). Desempate por
      * created_at/id mais novos: correção de cotação é nova linha com o mesmo valid_from.
      * Casa com o índice ix_fx_asof.

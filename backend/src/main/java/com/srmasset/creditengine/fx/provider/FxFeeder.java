@@ -29,12 +29,6 @@ public class FxFeeder {
     private final long timeoutMs;
     private final int maxAttempts;
     private final LongConsumer sleeper;
-    private final ExecutorService executor =
-            Executors.newSingleThreadExecutor(r -> {
-                Thread t = new Thread(r, "fx-feeder-call");
-                t.setDaemon(true);
-                return t;
-            });
 
     public FxFeeder(FxProviderClient client, ExchangeRateService rates, Clock clock,
             long timeoutMs, int maxAttempts, LongConsumer sleeper) {
@@ -52,7 +46,7 @@ public class FxFeeder {
             try {
                 ProviderQuote fetched = callWithTimeout(base, quote);
                 rates.register(base, quote, fetched.rate().toPlainString(),
-                        clock.instant(), "feeder");
+                        clock.instant(), "feeder", "feeder", false);
                 return true;
             } catch (RateOutOfBandException outOfBand) {
                 log.warn("Cotacao {}/{} do provedor descartada pela banda de sanidade: {}",
@@ -75,13 +69,25 @@ public class FxFeeder {
     }
 
     private ProviderQuote callWithTimeout(String base, String quote) throws Exception {
-        Future<ProviderQuote> future = executor.submit(() -> client.fetch(base, quote));
+        // Executor POR chamada: um provedor que ignore a interrupcao (cancel(true)) vaza no
+        // maximo UMA thread daemon isolada, sem travar as proximas chamadas do feeder — o que
+        // aconteceria com um pool de 1 thread reutilizado (R5). shutdownNow() no finally sinaliza.
+        ExecutorService executor = Executors.newSingleThreadExecutor(r -> {
+            Thread t = new Thread(r, "fx-feeder-call");
+            t.setDaemon(true);
+            return t;
+        });
         try {
-            return future.get(timeoutMs, TimeUnit.MILLISECONDS);
-        } catch (TimeoutException e) {
-            future.cancel(true);
-            throw new TimeoutException(
-                    "provedor excedeu " + timeoutMs + "ms (tentativa abortada)");
+            Future<ProviderQuote> future = executor.submit(() -> client.fetch(base, quote));
+            try {
+                return future.get(timeoutMs, TimeUnit.MILLISECONDS);
+            } catch (TimeoutException e) {
+                future.cancel(true);
+                throw new TimeoutException(
+                        "provedor excedeu " + timeoutMs + "ms (tentativa abortada)");
+            }
+        } finally {
+            executor.shutdownNow();
         }
     }
 }

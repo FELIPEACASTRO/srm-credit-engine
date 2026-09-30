@@ -24,13 +24,16 @@ public class ExchangeRateService {
     private final ExchangeRateRepository repository;
     private final com.srmasset.creditengine.rates.CurrencyRepository currencies;
     private final Duration maxAge;
+    private final org.springframework.transaction.support.TransactionTemplate tx;
 
     public ExchangeRateService(ExchangeRateRepository repository,
             com.srmasset.creditengine.rates.CurrencyRepository currencies,
-            @Value("${app.fx.max-age:PT24H}") Duration maxAge) {
+            @Value("${app.fx.max-age:PT24H}") Duration maxAge,
+            org.springframework.transaction.PlatformTransactionManager txManager) {
         this.repository = repository;
         this.currencies = currencies;
         this.maxAge = maxAge;
+        this.tx = new org.springframework.transaction.support.TransactionTemplate(txManager);
     }
 
     /** Cotação utilizável no instante: vigente mais recente, com idade <= FX_MAX_AGE. */
@@ -59,14 +62,14 @@ public class ExchangeRateService {
      * referência — a banda não se aplica. {@code override=true} conscientemente ignora a
      * banda (choque cambial real que excede 10%), registrando quem forçou.
      */
-    /** Sobrecarga sem override (feeder, seeds): a banda de sanidade sempre vale. */
+    /** Sobrecarga sem override (feeder, seeds): source 'manual', banda de sanidade sempre vale. */
     public ExchangeRateRow register(String base, String quote, String rate, Instant validFrom,
             String actor) {
-        return register(base, quote, rate, validFrom, actor, false);
+        return register(base, quote, rate, validFrom, actor, "manual", false);
     }
 
     public ExchangeRateRow register(String base, String quote, String rate, Instant validFrom,
-            String actor, boolean override) {
+            String actor, String source, boolean override) {
         if (rate == null || !rate.matches(RATE_PATTERN)) {
             throw new IllegalArgumentException("Taxa invalida: '" + rate + "'");
         }
@@ -77,23 +80,28 @@ public class ExchangeRateService {
         if (currencies.find(base).isEmpty() || currencies.find(quote).isEmpty()) {
             throw new IllegalArgumentException("Par com moeda desconhecida: " + base + "/" + quote);
         }
-        repository.asOf(base, quote, validFrom).ifPresent(currentRow -> {
-            BigDecimal deviation = value.divide(currentRow.rate(), MathContext.DECIMAL64)
-                    .subtract(BigDecimal.ONE).abs();
-            if (deviation.compareTo(BAND) > 0) {
-                if (!override) {
-                    throw new RateOutOfBandException(
-                            "Taxa " + rate + " desvia "
-                                    + deviation.movePointRight(2).toPlainString()
-                                    + "% da vigente " + currentRow.rate().toPlainString()
-                                    + " (banda de 10%). Reenvie com override=true se for real.");
+        // Lock do par + asOf + insert numa unica transacao: o check da banda e o insert viram
+        // atomicos (R1), fechando a corrida em que duas cotacoes opostas furariam a banda.
+        Long id = tx.execute(status -> {
+            repository.lockPair(base, quote);
+            repository.asOf(base, quote, validFrom).ifPresent(currentRow -> {
+                BigDecimal deviation = value.divide(currentRow.rate(), MathContext.DECIMAL128)
+                        .subtract(BigDecimal.ONE).abs();
+                if (deviation.compareTo(BAND) > 0) {
+                    if (!override) {
+                        throw new RateOutOfBandException(
+                                "Taxa " + rate + " desvia "
+                                        + deviation.movePointRight(2).toPlainString()
+                                        + "% da vigente " + currentRow.rate().toPlainString()
+                                        + " (banda de 10%). Reenvie com override=true se for real.");
+                    }
+                    log.warn("Cotacao {}/{} = {} forcada por {} (desvio {}% da vigente {})",
+                            base, quote, rate, actor, deviation.movePointRight(2).toPlainString(),
+                            currentRow.rate().toPlainString());
                 }
-                log.warn("Cotacao {}/{} = {} forcada por {} (desvio {}% da vigente {})",
-                        base, quote, rate, actor, deviation.movePointRight(2).toPlainString(),
-                        currentRow.rate().toPlainString());
-            }
+            });
+            return repository.insert(base, quote, value, validFrom, source, actor);
         });
-        long id = repository.insert(base, quote, value, validFrom, "manual", actor);
         return new ExchangeRateRow(id, base, quote, value, validFrom);
     }
 }
