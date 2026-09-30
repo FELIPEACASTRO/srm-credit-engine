@@ -1,5 +1,7 @@
 # SRM Credit Engine
 
+[![ci](https://github.com/FELIPEACASTRO/srm-credit-engine/actions/workflows/ci.yml/badge.svg)](https://github.com/FELIPEACASTRO/srm-credit-engine/actions/workflows/ci.yml)
+
 Plataforma de cessão de crédito multimoedas (BRL/USD): precifica recebíveis com deságio, liquida com garantias ACID + idempotência e registra tudo em snapshot **imutável** e auditável. Entrega do desafio técnico da SRM Asset, nível **Sênior + documentos de Staff/Tech Lead**.
 
 > Fio condutor da arquitetura: **cada defeito do Anexo A tem aqui um mecanismo nomeado que o impede** — unidade no tipo (`MonthlyRate`), transação curta UPDATE versionado→INSERT, `UNIQUE` de idempotência no banco, câmbio as-of com snapshot, erro jamais engolido, goldens como gate de CI.
@@ -106,4 +108,4 @@ docker compose exec db psql -U postgres -d credit_engine -c "EXPLAIN (ANALYZE, B
 
 ## 9. CI
 
-Cinco jobs em [`ci.yml`](.github/workflows/ci.yml): `golden-cases` (gate nomeado), integração contra PostgreSQL real, frontend (tsc estrito + testes + lint + build), *guards* (grep de float/`Math.pow`/`toFixed` no caminho do dinheiro e de SQL concatenado) e `compose-smoke` — sobe a stack do zero no runner e **afere o C1 ao centavo pela API**. Badge (após push para o GitHub): `![ci](../../actions/workflows/ci.yml/badge.svg)`.
+Cinco jobs em [`ci.yml`](.github/workflows/ci.yml): `golden-cases` (gate nomeado), integração contra PostgreSQL real, frontend (tsc estrito + testes + lint + build), *guards* (grep de float/`Math.pow`/`toFixed` no caminho do dinheiro e de SQL concatenado) e `compose-smoke` — sobe a stack do zero no runner e **afere o C1 ao centavo pela API**. O badge de status fica no topo deste README.
