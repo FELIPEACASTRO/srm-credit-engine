@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { ApiError, apiClient, type ApiClient, type Idempotent } from "../api/client";
 import type { ReceivableResponse, SettlementResponse } from "../api/types";
 import { formatMoney } from "../lib/money";
+import { uuidv4 } from "../lib/uuid";
 
 export interface SettleFormValues {
   cedenteId: string;
@@ -45,8 +46,8 @@ export function SettleDialog({ form, expectedAmount, client = apiClient,
   if (keysRef.current?.intention !== intention) {
     keysRef.current = {
       intention,
-      creationKey: crypto.randomUUID(),
-      settleKey: crypto.randomUUID(),
+      creationKey: uuidv4(),
+      settleKey: uuidv4(),
     };
     if (done || error) {
       // intencao nova: resultado anterior nao se aplica mais

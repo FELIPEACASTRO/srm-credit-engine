@@ -9,6 +9,7 @@ import "@fontsource/ibm-plex-mono/600.css";
 import "@fontsource/space-grotesk/500.css";
 import "@fontsource/space-grotesk/700.css";
 import { App } from "./App";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import "./styles.css";
 
 const queryClient = new QueryClient({
@@ -17,8 +18,10 @@ const queryClient = new QueryClient({
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <App />
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <App />
+      </QueryClientProvider>
+    </ErrorBoundary>
   </StrictMode>,
 );

@@ -58,6 +58,22 @@ class MigrationSeedIT extends IntegrationTestBase {
     }
 
     @Test
+    @DisplayName("V4: moeda de escala != 2 e barrada pelo CHECK (dinheiro e NUMERIC(15,2) fim a fim)")
+    void currencyScaleGuard() {
+        org.junit.jupiter.api.Assertions.assertThrows(
+                org.springframework.dao.DataAccessException.class,
+                () -> jdbc.sql("insert into currencies (code, minor_units) values ('JPY', 0)")
+                        .update());
+        org.junit.jupiter.api.Assertions.assertThrows(
+                org.springframework.dao.DataAccessException.class,
+                () -> jdbc.sql("insert into currencies (code, minor_units) values ('BHD', 3)")
+                        .update());
+        // 2 casas continua valido (XTS = codigo ISO reservado a testes; nao usado por outros casos)
+        jdbc.sql("insert into currencies (code, minor_units) values ('XTS', 2) on conflict do nothing")
+                .update();
+    }
+
+    @Test
     @DisplayName("indices unicos de idempotencia existem: ux_settlements_receivable e ux_settlements_idem")
     void uniqueIndexes() {
         Long count = jdbc.sql("""

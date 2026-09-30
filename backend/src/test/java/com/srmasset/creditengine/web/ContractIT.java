@@ -200,6 +200,18 @@ class ContractIT extends WebIntegrationTestBase {
     }
 
     @Test
+    @DisplayName("Content-Type errado -> 415 problem+json (culpa do cliente), nunca 500")
+    void wrongContentTypeIs415() throws Exception {
+        mvc.perform(post("/api/v1/simulations")
+                        .contentType(MediaType.TEXT_PLAIN)
+                        .content(simulationBody("DUPLICATA", "100000.00", "BRL",
+                                LocalDate.now().plusMonths(3))))
+                .andExpect(status().isUnsupportedMediaType())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.code").value("unsupported-media-type"));
+    }
+
+    @Test
     @DisplayName("erro interno nunca vaza stack nem SQL: corpo e problem+json generico")
     void internalErrorsAreOpaque() throws Exception {
         // forca 500 num caminho sem tratamento especifico: id de settlement inexistente e valido,

@@ -47,6 +47,24 @@ class ReceivableServiceIT extends IntegrationTestBase {
     }
 
     @Test
+    @DisplayName("mesma creation_key com payload DIFERENTE -> CreationKeyReuse (422), sem replay silencioso")
+    void creationKeyReuseWithDivergentPayload() {
+        UUID key = UUID.randomUUID();
+        service.register(cmd(key)); // faceValue 50000.00, DUPLICATA, BRL
+
+        RegisterReceivableCommand divergente = new RegisterReceivableCommand(
+                1L, "DUPLICATA", "99999.00", "BRL", LocalDate.now().plusMonths(4), key);
+        assertThrows(CreationKeyReuseException.class, () -> service.register(divergente));
+
+        // o cadastro original permanece unico e intacto
+        assertEquals(1L, jdbc.sql("select count(*) from receivables where creation_key = :k")
+                .param("k", key).query(Long.class).single());
+        assertEquals("50000.00", jdbc.sql(
+                        "select face_value::text from receivables where creation_key = :k")
+                .param("k", key).query(String.class).single());
+    }
+
+    @Test
     @DisplayName("cedente inexistente -> CedenteNotFound (404 na borda)")
     void unknownCedente() {
         RegisterReceivableCommand bad = new RegisterReceivableCommand(
