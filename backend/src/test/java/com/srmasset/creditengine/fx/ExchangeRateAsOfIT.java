@@ -36,9 +36,9 @@ class ExchangeRateAsOfIT extends IntegrationTestBase {
     @Autowired
     private JdbcClient jdbc;
 
-    /** Cria uma moeda quote exclusiva do teste e devolve o codigo. */
+    /** Cria uma moeda quote exclusiva do teste (codigo ISO valido: 3 letras). */
     private String newQuote() {
-        String code = "Q0" + SEQ.incrementAndGet();
+        String code = "Z" + (char) ('A' + SEQ.get() / 26) + (char) ('A' + SEQ.getAndIncrement() % 26);
         jdbc.sql("insert into currencies (code, minor_units) values (:c, 2)")
                 .param("c", code).update();
         return code;

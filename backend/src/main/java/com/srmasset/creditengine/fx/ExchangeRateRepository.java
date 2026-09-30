@@ -57,11 +57,4 @@ public class ExchangeRateRepository {
                 .query(Long.class)
                 .single();
     }
-
-    public boolean currencyExists(String code) {
-        return jdbc.sql("select count(*) from currencies where code = :c")
-                .param("c", code)
-                .query(Long.class)
-                .single() > 0;
-    }
 }

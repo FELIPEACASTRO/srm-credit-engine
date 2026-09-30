@@ -25,6 +25,11 @@ public final class AdditiveDiscountStrategy implements PricingStrategy {
     }
 
     @Override
+    public MonthlyRate spread() {
+        return spread;
+    }
+
+    @Override
     public BigDecimal presentValueRaw(BigDecimal faceValue, MonthlyRate baseRate, int termMonths) {
         return faceValue.divide(
                 DiscountFactor.additiveCompound(baseRate, spread, termMonths),
