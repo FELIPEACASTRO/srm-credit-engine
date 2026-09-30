@@ -25,22 +25,17 @@ const form = {
 };
 
 function clients() {
-  const registerKeys: string[] = [];
-  const settleKeys: string[] = [];
-  return {
-    registerKeys,
-    settleKeys,
-    client: {
-      registerReceivable: vi.fn(async (_body: unknown, key: string) => {
-        registerKeys.push(key);
-        return { body: receivable, replayed: false };
-      }),
-      settle: vi.fn(async (_id: number, key: string) => {
-        settleKeys.push(key);
-        return { body: settlement, replayed: false };
-      }),
-    },
+  const client = {
+    registerReceivable: vi.fn(async (_body: unknown, _key: string) =>
+        ({ body: receivable, replayed: false })),
+    settle: vi.fn(async (_id: number, _key: string) =>
+        ({ body: settlement, replayed: false })),
   };
+  // as chaves saem de mock.calls: capturam TODA chamada, inclusive as rejeitadas
+  // (mockRejectedValueOnce substitui a implementacao e pularia um push manual)
+  const registerKeys = () => client.registerReceivable.mock.calls.map((c) => c[1]);
+  const settleKeys = () => client.settle.mock.calls.map((c) => c[1]);
+  return { client, registerKeys, settleKeys };
 }
 
 describe("SettleDialog: chave por intencao, anti-duplo-clique", () => {
@@ -68,9 +63,9 @@ describe("SettleDialog: chave por intencao, anti-duplo-clique", () => {
     await waitFor(() => expect(screen.getByRole("alert")).toBeInTheDocument());
     await user.click(screen.getByRole("button", { name: /tentar novamente/i }));
 
-    await waitFor(() => expect(settleKeys.length).toBe(2));
-    expect(settleKeys[0]).toBe(settleKeys[1]);
-    expect(registerKeys[0]).toBe(registerKeys[1]);
+    await waitFor(() => expect(settleKeys().length).toBe(2));
+    expect(settleKeys()[0]).toBe(settleKeys()[1]);
+    expect(registerKeys()[0]).toBe(registerKeys()[1]);
   });
 
   it("mudar o formulario gera chaves NOVAS (outra intencao)", async () => {
@@ -80,12 +75,12 @@ describe("SettleDialog: chave por intencao, anti-duplo-clique", () => {
     );
     const user = userEvent.setup();
     await user.click(screen.getByRole("button", { name: /cadastrar e liquidar/i }));
-    await waitFor(() => expect(settleKeys.length).toBe(1));
+    await waitFor(() => expect(settleKeys().length).toBe(1));
 
     rerender(<SettleDialog form={{ ...form, faceValue: "50000.00" }}
         expectedAmount="46429.97" client={client} />);
     await user.click(screen.getByRole("button", { name: /cadastrar e liquidar/i }));
-    await waitFor(() => expect(settleKeys.length).toBe(2));
-    expect(settleKeys[1]).not.toBe(settleKeys[0]);
+    await waitFor(() => expect(settleKeys().length).toBe(2));
+    expect(settleKeys()[1]).not.toBe(settleKeys()[0]);
   });
 });

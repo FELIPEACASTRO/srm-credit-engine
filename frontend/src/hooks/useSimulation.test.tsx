@@ -1,6 +1,7 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { SimulationResponse } from "../api/types";
+import type { DecimalString } from "../lib/money";
 import { useSimulation, type SimulationInput } from "./useSimulation";
 
 function response(pv: string): SimulationResponse {
@@ -18,7 +19,7 @@ function response(pv: string): SimulationResponse {
 
 const input = (faceValue: string): SimulationInput => ({
   type: "DUPLICATA",
-  faceValue,
+  faceValue: faceValue as DecimalString,
   paymentCurrency: "BRL",
   dueDate: "2026-12-30",
 });
