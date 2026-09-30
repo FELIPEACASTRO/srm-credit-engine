@@ -34,7 +34,7 @@ cd frontend && npm install && npm run dev      # web em :5173 (proxy /api -> :80
 
 Pré-requisitos: **JDK 21+** (funciona com 21 ou 22 — o alvo de compilação é 21 LTS) e Node 20+. O Maven vem pelo wrapper.
 
-**Demo de 60 segundos:** abra o painel, deixe o valor `100.000,00`, vencimento hoje+3 meses, Duplicata/BRL → simulação mostra **R$ 92.859,94** (golden C1). Troque a moeda para USD → **US$ 17.094,67** com a cotação semeada 5,4321 (golden C3). Clique "Cadastrar e liquidar" → a liquidação aparece no extrato com totais por moeda. Clique de novo rapidíssimo à vontade: **uma** liquidação (idempotência). A cotação do seed vale por `FX_MAX_AGE` (24 h); renove via `POST /api/v1/exchange-rates` ou deixe o feeder (ligado no compose) renovar.
+**Demo de 60 segundos:** abra o painel, deixe o valor `100.000,00`, vencimento hoje+3 meses, Duplicata/BRL → simulação mostra **R$ 92.859,94** (golden C1). Troque a moeda para USD → **US$ 17.094,67** com a cotação semeada 5,4321 (golden C3). Clique "Cadastrar e liquidar" → a liquidação aparece no extrato com totais por moeda. Clique de novo rapidíssimo à vontade: **uma** liquidação (idempotência). A cotação do seed vale por `FX_MAX_AGE` (24 h); renove via `POST /api/v1/exchange-rates` ou deixe o feeder (ligado no compose) renovar. A atualização manual tem banda de sanidade de ±10% contra fat finger — um choque real acima disso entra com `"override": true`. O topo da tela traz um **ticker USD/BRL** com a idade da vigência e um **alternador de tema** claro/escuro; o número líquido é decomposto numa equação auditável (face ÷ taxa ^ prazo = PV → deságio → câmbio).
 
 ## 2. Testes e aferição
 
@@ -88,7 +88,7 @@ Monólito modular em 3 camadas (4.1.7), com o atalho de duas camadas **só** no 
 
 ## 7. Frontend sem estado global
 
-Estado de servidor no TanStack Query; **filtros e cursor do extrato na URL** (compartilháveis); formulário local. Nada é compartilhado entre telas — store global precisaria de justificativa que não existe aqui. Duplo clique é travado por ref síncrona e a `Idempotency-Key` nasce **por intenção** (mesma intenção + retry = mesma chave = replay do backend).
+Estado de servidor no TanStack Query; **filtros e cursor do extrato na URL** (compartilháveis); formulário local. Nada é compartilhado entre telas — store global precisaria de justificativa que não existe aqui. Duplo clique é travado por ref síncrona e a `Idempotency-Key` nasce **por intenção** (mesma intenção + retry = mesma chave = replay do backend). Dinheiro nunca vira `Number` no cliente (string + BigInt); um `ErrorBoundary` impede que uma falha de render derrube a mesa, e a geração de UUID resiste a contexto não-seguro (acesso por IP da LAN).
 
 ## 8. Extrato: consulta e índices
 

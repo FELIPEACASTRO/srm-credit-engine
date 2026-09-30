@@ -38,7 +38,7 @@ Stack: **Java 21 + Spring Boot** (tipagem forte é diferencial declarado; `BigDe
 - **Sem estado global no front**: estado de servidor no TanStack Query, filtros/cursor na URL, formulário local.
 - **Estorno sem endpoint**: tabela `settlement_reversals` com schema e documentação; operação de correção é processo, não API.
 - **Authn/authz fora do escopo** (declarado): ator via `X-Operator` → `settled_by`; plano real: OIDC no gateway.
-- **Migrations Flyway** (`V1__schema.sql`, `V2__immutability_and_roles.sql`, seed): schema versionado, nunca `ddl-auto`.
+- **Migrations Flyway** (`V1` schema, `V2` imutabilidade+papéis, `V3` seed, `V4` guard de escala de moeda): schema versionado, nunca `ddl-auto`.
 
 ## 4. Alternativas rejeitadas (e por quê)
 
@@ -68,7 +68,7 @@ A implementação foi feita em **sessão única intensiva com IA como par** (pro
 | Cadastro + liquidação (N06–N07) | 2,5 h | ✅ matriz de idempotência 6 faces + corrida | 11 ITs, barreira determinística |
 | API/erros/OpenAPI (N08) | 1,25 h | ✅ ContractIT + AnnexARegressionIT | replay byte a byte idêntico |
 | Extrato (N09) | 0,75 h | ✅ keyset estável sob inserção | 5 ITs |
-| Frontend (N10, P3) | 2,5 h | ✅ 15 testes + tsc estrito + build | vitest 4 |
+| Frontend (N10, P3) | 2,5 h | ✅ painel + grid + tsc estrito + build | vitest 4 |
 | REVIEW.md (N11) | 1,5 h | ✅ escrito DEPOIS da minha liquidação | — |
 | Lock + obs + resiliência + CI (S1–S4) | 3,5 h | ✅ mutante do lock provado 5/5 | FxFeederTest sem sleep |
 | Compose + smoke (P1) | 1,0 h | ✅ validado pelo job compose-smoke do CI | sem Docker local (fato da máquina) |
@@ -81,3 +81,15 @@ A implementação foi feita em **sessão única intensiva com IA como par** (pro
 - **`spring-boot:test-run` como demo local sem Docker** — o avaliador usa o compose; drills e demo nesta máquina usam o runner de teste com o embarcado.
 - **`Instant` truncado a micros antes de persistir** — `timestamptz` guarda micros; replay tem que ser byte a byte idêntico (caso 1 do AI_USAGE).
 - **vitest 4** para alinhar tipos com vite 8 (caso 10 do log de IA).
+
+## 8. Pós-entrega: auditorias e hardening
+
+Após a tag `v1.0.0`, a solução passou por auditorias adversariais (multi-especialista com verificação por refutação). Os relatórios completos ficam fora do pacote (com o candidato); as correções que resultaram estão aqui, cada uma com teste e CI verde:
+
+- **Auditoria de conformidade** — 0 requisito ausente, 0 anti-padrão da §12, 0 lixo. Correção pontual: rótulo do C4 "Spring Boot 3" → 4.1.1.
+- **Bug hunt (22 achados, 11 confirmados + 11 ressalvas — todos fechados):**
+  - **PR #3** — C1 crítico: `crypto.randomUUID()` no render fora de contexto seguro derrubaria a UI → `lib/uuid.ts` (fallback) + `ErrorBoundary`. C2/C3 altos: exceções built-in do Spring viravam 500 com log falso → handlers 415/406/400; e `minor_units` 0..4 vs `NUMERIC(15,2)` → **migration V4** `= 2`. C4: cadastro idempotente com payload divergente → 422. C6: nginx re-resolve o IP da API. C11: senha do init via variável do psql.
+  - **PR #4** — C5: banda de câmbio ganhou `override` explícito e logado (default estrito). C7: idade do ticker atualiza sozinha. C8: não liquidar durante reprecificação (preço stale). C9: moeda inválida → 422 (era 503). C10: card de sucesso sem flash de intenção antiga.
+  - **PR #5** — R1: banda com `pg_advisory_xact_lock` transacional (check-then-act atômico). R2: feeder grava `source='feeder'`. R3: `MonthlyRate` valida escala ≤ 6. R4: `invalid-idempotency-key` distinto de ausente. R5: feeder com executor por-chamada (I/O não-interrompível não trava). R6: banda em `DECIMAL128`. R7–R11: comentário, doc do Flyway user, guards de CI endurecidos, healthcheck da API + `service_healthy` + `restart`.
+
+**Suítes após o hardening:** backend **61** testes de integração (PG 17 real) + unitários; frontend **26**; CI 5/5 verde em cada PR. As contagens por bloco da seção 6 são as da entrega inicial.
