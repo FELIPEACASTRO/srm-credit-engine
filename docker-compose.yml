@@ -5,7 +5,10 @@
 
 services:
   db:
-    image: postgres:17
+    # Imagem propria com o init ASSADO (ver infra/db/Dockerfile): sem bind-mount,
+    # roda em qualquer Windows sem depender do File Sharing do Docker Desktop.
+    build:
+      context: ./infra/db
     environment:
       POSTGRES_DB: credit_engine
       POSTGRES_USER: postgres
@@ -13,7 +16,6 @@ services:
       APP_DB_PASSWORD: ${APP_DB_PASSWORD:-credit_engine_app}
     volumes:
       - db-data:/var/lib/postgresql/data
-      - ./infra/db-init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       # -h 127.0.0.1 forca TCP: o socket unix fica pronto antes e daria falso "saudavel"
       test: ["CMD-SHELL", "pg_isready -U postgres -d credit_engine -h 127.0.0.1"]
