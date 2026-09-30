@@ -2,6 +2,7 @@ package com.srmasset.creditengine.settlement;
 
 import com.srmasset.creditengine.fx.ExchangeRateRow;
 import com.srmasset.creditengine.fx.ExchangeRateService;
+import com.srmasset.creditengine.observability.SettlementMetrics;
 import com.srmasset.creditengine.pricing.Currency;
 import com.srmasset.creditengine.pricing.FxRate;
 import com.srmasset.creditengine.pricing.Money;
@@ -55,11 +56,13 @@ public class SettlementService {
     private final SettlementHooks hooks;
     private final Clock clock;
     private final TransactionTemplate tx;
+    private final SettlementMetrics metrics;
 
     public SettlementService(SettlementRepository settlements, ReceivableRepository receivables,
             CurrencyRepository currencies, BaseRateRepository baseRates, ExchangeRateService fx,
             PricingEngine engine, StrategyRegistry registry, RoundingPolicy rounding,
-            SettlementHooks hooks, Clock clock, PlatformTransactionManager txManager) {
+            SettlementHooks hooks, Clock clock, PlatformTransactionManager txManager,
+            SettlementMetrics metrics) {
         this.settlements = settlements;
         this.receivables = receivables;
         this.currencies = currencies;
@@ -71,6 +74,7 @@ public class SettlementService {
         this.hooks = hooks;
         this.clock = clock;
         this.tx = new TransactionTemplate(txManager);
+        this.metrics = metrics;
     }
 
     public SettlementOutcome settle(SettleCommand cmd) {
@@ -109,9 +113,10 @@ public class SettlementService {
 
         int termMonths = TermCalculator.termMonths(today, receivable.dueDate());
         PricingContext ctx = new PricingContext(new MonthlyRate(baseRate.monthlyRate()), rounding);
-        PricingResult result = engine.price(new PricingRequest(
+        FxRate fxForPricing = fxRate;
+        PricingResult result = metrics.timePricing(() -> engine.price(new PricingRequest(
                 receivable.type(), new Money(receivable.faceValue(), Currency.BRL),
-                termMonths, payment, fxRate), ctx);
+                termMonths, payment, fxForPricing), ctx));
 
         if (cmd.expectedAmount() != null
                 && !result.paidAmount().amount().toPlainString().equals(cmd.expectedAmount())) {
@@ -144,6 +149,7 @@ public class SettlementService {
                 long id = settlements.insert(toInsert);
                 return withId(toInsert, id);
             });
+            metrics.recordSettlement("created", payment.code());
             return new SettlementOutcome(saved, true);
         } catch (StaleReceivableSignal stale) {
             // outra transacao venceu a corrida: se foi a MESMA chave, e replay; senao, conflito
@@ -166,6 +172,7 @@ public class SettlementService {
         if (!row.requestHash().equals(hash)) {
             throw new IdempotencyKeyReuseException();
         }
+        metrics.recordSettlement("replayed", row.paymentCurrency());
         return new SettlementOutcome(row, false);
     }
 
