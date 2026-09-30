@@ -22,7 +22,13 @@ class ImmutabilityIT extends IntegrationTestBase {
     private JdbcClient jdbc;
 
     private long seedSettlement() {
-        Long receivableId = jdbc.sql("select id from receivables where status = 'OPEN' limit 1")
+        // um recebivel ainda sem liquidacao: os testes compartilham o banco da JVM e a
+        // ux_settlements_receivable (corretamente) impede reutilizar o mesmo
+        Long receivableId = jdbc.sql("""
+                        select r.id from receivables r
+                        left join settlements s on s.receivable_id = r.id
+                        where s.id is null and r.status = 'OPEN' limit 1
+                        """)
                 .query(Long.class).single();
         return jdbc.sql("""
                         insert into settlements (receivable_id, cedente_id, idempotency_key,
