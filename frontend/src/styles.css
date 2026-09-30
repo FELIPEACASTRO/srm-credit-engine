@@ -1,0 +1,120 @@
+/* Corte A1 declarado no DECISIONS: legibilidade sim, polimento visual nao. */
+:root {
+  color-scheme: light;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  line-height: 1.5;
+}
+
+body {
+  margin: 0;
+  background: #f5f6f8;
+  color: #1c2330;
+}
+
+main {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 16px;
+  display: grid;
+  gap: 16px;
+}
+
+header p {
+  color: #5a6478;
+  margin-top: 4px;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid #dde1e8;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.card.success {
+  border-color: #7bbf8e;
+  background: #f2faf4;
+}
+
+.fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+label {
+  display: grid;
+  gap: 4px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+input,
+select,
+button {
+  font: inherit;
+  padding: 6px 10px;
+  border: 1px solid #b9c0cc;
+  border-radius: 6px;
+}
+
+button {
+  background: #17335f;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  padding: 8px 16px;
+}
+
+button:disabled {
+  background: #9aa4b5;
+  cursor: not-allowed;
+}
+
+.result {
+  min-height: 3.5rem;
+  margin-top: 12px;
+}
+
+.headline {
+  font-size: 1.15rem;
+}
+
+.error {
+  color: #a2201f;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 12px;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 6px 8px;
+  border-bottom: 1px solid #e3e6ec;
+  font-variant-numeric: tabular-nums;
+}
+
+.grid-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.total {
+  margin-right: 16px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
