@@ -23,7 +23,7 @@ public record SettlementResponse(
         String settledBy,
         Instant settledAt) {
 
-    static SettlementResponse of(SettlementRow s) {
+    public static SettlementResponse of(SettlementRow s) {
         return new SettlementResponse(
                 s.id(), s.receivableId(), s.cedenteId(), s.strategy(),
                 s.faceValue().toPlainString(), s.termMonths(), s.pricingDate(),
