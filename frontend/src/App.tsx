@@ -1,12 +1,18 @@
 import { SimulationPanel } from "./components/SimulationPanel";
 import { SettlementsGrid } from "./components/SettlementsGrid";
+import { FxTicker } from "./components/FxTicker";
 
 export function App() {
   return (
     <main>
-      <header>
-        <h1>SRM Credit Engine</h1>
-        <p>Mesa de operações — precificação e liquidação de recebíveis (BRL/USD)</p>
+      <header className="topbar">
+        <div className="brand">
+          <h1>
+            SRM <span className="accent">Credit Engine</span>
+          </h1>
+          <span className="env">mesa · BRL/USD</span>
+        </div>
+        <FxTicker />
       </header>
       <SimulationPanel />
       <SettlementsGrid />

@@ -2,8 +2,8 @@ import { formatDateBr, formatMoney } from "../lib/money";
 import { useSettlements, useStatementFilters } from "../hooks/useSettlements";
 
 /**
- * Grid de transações (4.2.2): filtros e paginação SERVER-SIDE (keyset — não duplica nem
- * pula itens sob inserção concorrente), estado na URL, totais por moeda vindos do SQL.
+ * O ledger da mesa (4.2.2): filtros e paginação SERVER-SIDE (keyset — não duplica nem
+ * pula sob inserção concorrente), estado na URL, totais por moeda vindos do SQL.
  */
 export function SettlementsGrid() {
   const [filters, update] = useStatementFilters();
@@ -28,9 +28,9 @@ export function SettlementsGrid() {
           <select value={filters.cedenteId ?? ""}
             onChange={(e) => update({ cedenteId: e.target.value })}>
             <option value="">Todos</option>
-            <option value="1">1 — Alfa</option>
-            <option value="2">2 — Beta</option>
-            <option value="3">3 — Gama</option>
+            <option value="1">1 · Alfa</option>
+            <option value="2">2 · Beta</option>
+            <option value="3">3 · Gama</option>
           </select>
         </label>
         <label>
@@ -54,51 +54,63 @@ export function SettlementsGrid() {
             <th scope="col">Data</th>
             <th scope="col">Cedente</th>
             <th scope="col">Tipo</th>
-            <th scope="col">Valor de face</th>
-            <th scope="col">Deságio</th>
-            <th scope="col">Valor pago</th>
+            <th scope="col">Moeda</th>
+            <th scope="col" className="money">Valor de face</th>
+            <th scope="col" className="money">Deságio</th>
+            <th scope="col" className="money">Valor pago</th>
             <th scope="col">Operador</th>
           </tr>
         </thead>
         <tbody>
           {data?.items.map((s) => (
             <tr key={s.id}>
-              <td>{s.id}</td>
+              <td className="mute">{s.id}</td>
               <td>{formatDateBr(s.pricingDate)}</td>
-              <td>{s.cedenteId}</td>
-              <td>{s.strategy}</td>
-              <td>{formatMoney(s.faceValue, "BRL")}</td>
-              <td>{formatMoney(s.discount.amount, s.discount.currency)}</td>
-              <td>{formatMoney(s.paid.amount, s.paid.currency)}</td>
-              <td>{s.settledBy}</td>
+              <td className="mute">{s.cedenteId}</td>
+              <td className="mute">{s.strategy}</td>
+              <td>
+                <span className={`badge ${s.paid.currency.toLowerCase()}`}>
+                  {s.paid.currency}
+                </span>
+              </td>
+              <td className="money">{formatMoney(s.faceValue, "BRL")}</td>
+              <td className="money mute">{formatMoney(s.discount.amount, s.discount.currency)}</td>
+              <td className="money">{formatMoney(s.paid.amount, s.paid.currency)}</td>
+              <td className="mute">{s.settledBy}</td>
             </tr>
           ))}
           {data && data.items.length === 0 && (
-            <tr><td colSpan={8}>Nenhuma liquidação no filtro atual.</td></tr>
+            <tr>
+              <td colSpan={9} className="empty">
+                Nenhuma liquidação no filtro atual — simule um recebível acima e liquide.
+              </td>
+            </tr>
           )}
         </tbody>
       </table>
 
       <div className="grid-footer">
-        <p>
+        <p className="totals">
           {Object.entries(data?.totalsByCurrency ?? {}).map(([currency, total]) => (
             <span key={currency} className="total">
-              Total {currency}: <strong>{formatMoney(total, currency)}</strong>
+              Total {currency} <strong>{formatMoney(total, currency)}</strong>
             </span>
           ))}
         </p>
-        <button
-          type="button"
-          disabled={!data?.nextCursor || isFetching}
-          onClick={() => data?.nextCursor && update({ cursor: data.nextCursor })}
-        >
-          Próxima página
-        </button>
-        {filters.cursor && (
-          <button type="button" onClick={() => update({ cursor: "" })}>
-            Voltar à primeira página
+        <div className="actions" style={{ marginTop: 0 }}>
+          {filters.cursor && (
+            <button type="button" className="ghost" onClick={() => update({ cursor: "" })}>
+              Primeira página
+            </button>
+          )}
+          <button
+            type="button"
+            disabled={!data?.nextCursor || isFetching}
+            onClick={() => data?.nextCursor && update({ cursor: data.nextCursor })}
+          >
+            Próxima página
           </button>
-        )}
+        </div>
       </div>
     </section>
   );

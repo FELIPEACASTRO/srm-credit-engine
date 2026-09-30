@@ -91,26 +91,26 @@ export function SettleDialog({ form, expectedAmount, client = apiClient,
     const s = done.body;
     return (
       <section className="card success" aria-live="polite">
-        <h3>Liquidação nº {s.id} registrada{done.replayed ? " (replay idempotente)" : ""}</h3>
+        <h3>Liquidação nº {s.id} registrada{done.replayed ? " · replay idempotente" : ""}</h3>
         <p>
-          Pago: <strong>{formatMoney(s.paid.amount, s.paid.currency)}</strong> ·
-          Deságio: {formatMoney(s.discount.amount, s.discount.currency)} ·
-          Operador: {s.settledBy}
+          Pago <strong>{formatMoney(s.paid.amount, s.paid.currency)}</strong> · deságio{" "}
+          <strong>{formatMoney(s.discount.amount, s.discount.currency)}</strong> · câmbio{" "}
+          <strong>{s.fx ? s.fx.rate : "—"}</strong> · operador <strong>{s.settledBy}</strong>
         </p>
       </section>
     );
   }
 
   return (
-    <div>
-      {error && (
-        <p role="alert" className="error">
-          Falha ao liquidar — {error}
-        </p>
-      )}
+    <div className="actions">
       <button type="button" disabled={busy} onClick={run}>
         {busy ? "Liquidando…" : error ? "Tentar novamente" : "Cadastrar e liquidar"}
       </button>
+      {error && (
+        <p role="alert" className="error" style={{ margin: 0 }}>
+          Falha ao liquidar — {error}
+        </p>
+      )}
     </div>
   );
 }

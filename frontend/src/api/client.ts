@@ -1,4 +1,5 @@
 import type {
+  ExchangeRateDto,
   ProblemDetail,
   ReceivableResponse,
   RegisterReceivableRequest,
@@ -84,6 +85,12 @@ export const apiClient = {
   async getStatement(search: string): Promise<StatementPage> {
     const { body } = await request<StatementPage>(
         `/settlements${search ? "?" + search : ""}`, { method: "GET" });
+    return body;
+  },
+
+  async getCurrentRate(base: string, quote: string): Promise<ExchangeRateDto> {
+    const { body } = await request<ExchangeRateDto>(
+        `/exchange-rates/current?base=${base}&quote=${quote}`, { method: "GET" });
     return body;
   },
 };
