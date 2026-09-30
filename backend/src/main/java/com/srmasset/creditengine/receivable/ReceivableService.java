@@ -71,9 +71,25 @@ public class ReceivableService {
         return receivables.insertIdempotent(cmd.cedenteId(), cmd.type(), face.amount(),
                         payment.code(), cmd.dueDate(), cmd.creationKey())
                 .map(row -> new RegistrationResult(row, true))
-                .orElseGet(() -> new RegistrationResult(
-                        receivables.findByCreationKey(cmd.creationKey()).orElseThrow(),
-                        false));
+                .orElseGet(() -> {
+                    // Conflito na creation_key: e replay. So devolve o original se o payload
+                    // for o MESMO; payload divergente com a mesma chave e erro do cliente (422),
+                    // coerente com a matriz de idempotencia da liquidacao.
+                    ReceivableRow existente = receivables.findByCreationKey(cmd.creationKey())
+                            .orElseThrow();
+                    if (!mesmoPayload(existente, cmd, face)) {
+                        throw new CreationKeyReuseException();
+                    }
+                    return new RegistrationResult(existente, false);
+                });
+    }
+
+    private static boolean mesmoPayload(ReceivableRow row, RegisterReceivableCommand cmd, Money face) {
+        return row.cedenteId() == cmd.cedenteId()
+                && row.type().equals(cmd.type())
+                && row.faceValue().compareTo(face.amount()) == 0
+                && row.paymentCurrency().equals(cmd.paymentCurrency())
+                && row.dueDate().equals(cmd.dueDate());
     }
 
     /** Precifica com as vigências de AGORA, sem persistir nada (indicativa — premissa B9). */

@@ -75,8 +75,9 @@ public class GlobalExceptionHandler {
                 .body(problem(HttpStatus.CONFLICT, "price-changed", e.getMessage()));
     }
 
-    @ExceptionHandler(IdempotencyKeyReuseException.class)
-    ResponseEntity<ProblemDetail> keyReuse(IdempotencyKeyReuseException e) {
+    @ExceptionHandler({IdempotencyKeyReuseException.class,
+            com.srmasset.creditengine.receivable.CreationKeyReuseException.class})
+    ResponseEntity<ProblemDetail> keyReuse(RuntimeException e) {
         return ResponseEntity.unprocessableEntity()
                 .body(problem(HttpStatus.UNPROCESSABLE_ENTITY, "idempotency-key-reuse",
                         e.getMessage()));
@@ -141,6 +142,32 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest()
                 .body(problem(HttpStatus.BAD_REQUEST, "malformed-request",
                         "Corpo da requisicao invalido"));
+    }
+
+    /** Content-Type nao suportado (ex.: POST sem application/json) — 415, culpa do cliente,
+     *  jamais 500 com log de erro. */
+    @ExceptionHandler(org.springframework.web.HttpMediaTypeNotSupportedException.class)
+    ResponseEntity<ProblemDetail> mediaTypeNotSupported(
+            org.springframework.web.HttpMediaTypeNotSupportedException e) {
+        return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
+                .body(problem(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "unsupported-media-type",
+                        "Content-Type nao suportado; use application/json"));
+    }
+
+    @ExceptionHandler(org.springframework.web.HttpMediaTypeNotAcceptableException.class)
+    ResponseEntity<ProblemDetail> mediaTypeNotAcceptable(
+            org.springframework.web.HttpMediaTypeNotAcceptableException e) {
+        return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE)
+                .body(problem(HttpStatus.NOT_ACCEPTABLE, "not-acceptable",
+                        "Nenhum formato de resposta aceitavel"));
+    }
+
+    @ExceptionHandler(org.springframework.web.bind.MissingServletRequestParameterException.class)
+    ResponseEntity<ProblemDetail> missingParam(
+            org.springframework.web.bind.MissingServletRequestParameterException e) {
+        return ResponseEntity.badRequest()
+                .body(problem(HttpStatus.BAD_REQUEST, "missing-parameter",
+                        "Parametro obrigatorio ausente: " + e.getParameterName()));
     }
 
     @ExceptionHandler(org.springframework.web.HttpRequestMethodNotSupportedException.class)
