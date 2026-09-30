@@ -176,7 +176,7 @@ class SettlementServiceIT extends IntegrationTestBase {
 
         jdbc.sql("""
                         insert into exchange_rates (base, quote, rate, valid_from, source, created_by)
-                        values ('ZAR', 'BRL', 0.30000000, now(), 'test', 'test')
+                        values ('ZAR', 'BRL', 0.30000000, now() - interval '1 minute', 'test', 'test')
                         """).update();
 
         SettlementOutcome out = service.settle(cmd(id, key));
