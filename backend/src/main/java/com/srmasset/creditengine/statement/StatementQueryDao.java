@@ -2,7 +2,6 @@ package com.srmasset.creditengine.statement;
 
 import com.srmasset.creditengine.settlement.SettlementRepository;
 import com.srmasset.creditengine.settlement.SettlementRow;
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
