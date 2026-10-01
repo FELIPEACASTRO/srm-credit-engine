@@ -59,5 +59,41 @@ services:
     ports:
       - "80:80"
 
+  # Stack de observabilidade OPCIONAL (profile 'observability'): o `docker compose up`
+  # padrao continua com db+api+web. Subir com:  docker compose --profile observability up --build
+  #   Grafana  -> http://localhost:3000  (admin / admin, ou GRAFANA_ADMIN_PASSWORD)
+  #   Prometheus -> http://localhost:9090
+  prometheus:
+    build:
+      context: ./infra/observability/prometheus
+    profiles: ["observability"]
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    volumes:
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
+
+  grafana:
+    build:
+      context: ./infra/observability/grafana
+    profiles: ["observability"]
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+    volumes:
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+
 volumes:
   db-data:
+  prometheus-data:
+  grafana-data:
