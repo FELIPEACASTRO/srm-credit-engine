@@ -3,6 +3,8 @@ FROM eclipse-temurin:21-jdk AS build
 WORKDIR /workspace
 COPY .mvn .mvn
 COPY mvnw pom.xml ./
+# checkstyle roda no validate (M5): a config precisa existir dentro do build
+COPY config config
 RUN ./mvnw --batch-mode dependency:go-offline -q
 COPY src src
 RUN ./mvnw --batch-mode -DskipTests package -q
