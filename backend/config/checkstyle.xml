@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<!DOCTYPE module PUBLIC
+    "-//Checkstyle//DTD Checkstyle Configuration 1.3//EN"
+    "https://checkstyle.org/dtds/configuration_1_3.dtd">
+<!--
+  Linter Java do projeto (fecha o "testes e linter" do enunciado §6-Sênior).
+  Conjunto DELIBERADAMENTE enxuto: regras que pegam RISCO (imports mortos, igualdade
+  de String por ==, equals sem hashCode, switch furado, Float/Double em assinatura —
+  reforço da regra 1 do AGENTS.md no nível de tipo), não regras de formatação — o
+  estilo já é disciplina de review, e um reformat em massa agora seria churn sem valor.
+-->
+<module name="Checker">
+  <module name="TreeWalker">
+    <module name="UnusedImports"/>
+    <module name="RedundantImport"/>
+    <module name="AvoidStarImport"/>
+    <module name="OneTopLevelClass"/>
+    <module name="OuterTypeFilename"/>
+    <module name="StringLiteralEquality"/>
+    <module name="EqualsHashCode"/>
+    <module name="DefaultComesLast"/>
+    <module name="FallThrough"/>
+    <module name="SimplifyBooleanExpression"/>
+    <module name="SimplifyBooleanReturn"/>
+    <!-- Dinheiro jamais em ponto flutuante: nem como TIPO declarado (AGENTS regra 1) -->
+    <module name="IllegalType">
+      <property name="illegalClassNames"
+          value="java.lang.Float, java.lang.Double, float, double"/>
+    </module>
+  </module>
+</module>

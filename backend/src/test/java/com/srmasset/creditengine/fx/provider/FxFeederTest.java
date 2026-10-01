@@ -138,6 +138,31 @@ class FxFeederTest {
         assertTrue(elapsedMs < 3_000, "sem bloqueio residual: " + elapsedMs + "ms");
     }
 
+    @Test
+    @DisplayName("interrupcao (shutdown) NAO e falha do provedor: aborta sem retry, flag preservada")
+    void interruptionAbortsWithoutRetry() {
+        FxProviderClient slow = (base, quote) -> {
+            try {
+                Thread.sleep(5_000); // nunca completa dentro do teste
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            return new ProviderQuote(new BigDecimal("5.0"), CLOCK.instant());
+        };
+        Thread.currentThread().interrupt(); // o shutdown chega ANTES do future.get
+        try {
+            assertFalse(feeder(slow, 800).fetchAndStore("USD", "BRL"));
+            assertTrue(Thread.currentThread().isInterrupted(),
+                    "a flag de interrupcao tem que ser RESTAURADA (future.get a limpa)");
+            assertTrue(sleeps.isEmpty(),
+                    "interrupcao nao agenda retry/backoff — dormir atrasaria o shutdown");
+            verify(rates, never()).register(anyString(), anyString(), anyString(), any(),
+                    anyString(), anyString(), anyBoolean());
+        } finally {
+            Thread.interrupted(); // limpa a flag para nao vazar ao resto da suite
+        }
+    }
+
     private static FxProviderClient okQuote() {
         return (base, quote) -> new ProviderQuote(new BigDecimal("5.4400"),
                 Instant.parse("2026-09-30T12:00:00Z"));

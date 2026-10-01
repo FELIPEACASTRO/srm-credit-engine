@@ -92,7 +92,7 @@ Monólito modular em 3 camadas (4.1.7), com o atalho de duas camadas **só** no 
 
 ## 7. Frontend sem estado global
 
-Estado de servidor no TanStack Query; **filtros e cursor do extrato na URL** (compartilháveis); formulário local. Nada é compartilhado entre telas — store global precisaria de justificativa que não existe aqui. Duplo clique é travado por ref síncrona e a `Idempotency-Key` nasce **por intenção** (mesma intenção + retry = mesma chave = replay do backend). Dinheiro nunca vira `Number` no cliente (string + BigInt); um `ErrorBoundary` impede que uma falha de render derrube a mesa, e a geração de UUID resiste a contexto não-seguro (acesso por IP da LAN).
+Estado de servidor no TanStack Query; **filtros e cursor do extrato na URL** (compartilháveis); formulário local. Nada é compartilhado entre telas — store global precisaria de justificativa que não existe aqui. Duplo clique é travado por ref síncrona e a `Idempotency-Key` nasce **por intenção** (mesma intenção + retry = mesma chave = replay do backend). Dinheiro nunca vira `Number` no cliente — trafega como **string de ponta a ponta** (não existe aritmética monetária no browser; `formatMoney` lança se a escala vier errada); `ErrorBoundary` **por seção** (simulação, extrato, ticker) contém uma falha de render sem derrubar a mesa inteira, e a geração de UUID resiste a contexto não-seguro (acesso por IP da LAN).
 
 ## 8. Extrato: consulta e índices
 

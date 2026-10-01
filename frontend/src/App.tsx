@@ -2,6 +2,7 @@ import { SimulationPanel } from "./components/SimulationPanel";
 import { SettlementsGrid } from "./components/SettlementsGrid";
 import { FxTicker } from "./components/FxTicker";
 import { ThemeToggle } from "./components/ThemeToggle";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 
 export function App() {
   return (
@@ -14,12 +15,20 @@ export function App() {
           <span className="env">mesa · BRL/USD</span>
         </div>
         <div className="topbar-right">
-          <FxTicker />
+          <ErrorBoundary label="ticker de câmbio">
+            <FxTicker />
+          </ErrorBoundary>
           <ThemeToggle />
         </div>
       </header>
-      <SimulationPanel />
-      <SettlementsGrid />
+      {/* Boundary POR seção: uma linha ruim do extrato não pode derrubar a simulação
+          (formatMoney lança por contrato — a contenção tem que ser local). */}
+      <ErrorBoundary label="simulação">
+        <SimulationPanel />
+      </ErrorBoundary>
+      <ErrorBoundary label="extrato">
+        <SettlementsGrid />
+      </ErrorBoundary>
     </main>
   );
 }

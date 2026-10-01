@@ -293,11 +293,23 @@ class ContractIT extends WebIntegrationTestBase {
     }
 
     @Test
-    @DisplayName("erro interno nunca vaza stack nem SQL: corpo e problem+json generico")
+    @DisplayName("erro interno nunca vaza stack nem detalhe: 500 problem+json OPACO (catch-all)")
     void internalErrorsAreOpaque() throws Exception {
-        // forca 500 num caminho sem tratamento especifico: id de settlement inexistente e valido,
-        // 404; um id nao-numerico e 400 - ambos tratados. O contrato de opacidade e coberto
-        // pelo handler generico, exercitado via rota inexistente com metodo errado (404/405).
+        // BoomTestController (classpath de teste) lanca IllegalStateException: o unico jeito
+        // deterministico de exercitar a ULTIMA linha do GlobalExceptionHandler — que antes
+        // era o unico handler sem teste (achado M3 do code review).
+        MvcResult boom = mvc.perform(get("/test/boom"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.code").value("internal-error"))
+                .andReturn();
+        String body = boom.getResponse().getContentAsString();
+        org.junit.jupiter.api.Assertions.assertFalse(body.contains("sensivel"),
+                "mensagem interna vazou no corpo do 500");
+        org.junit.jupiter.api.Assertions.assertFalse(body.contains("IllegalStateException"),
+                "classe da excecao vazou no corpo do 500");
+
+        // e o 404 de recurso inexistente segue problem+json (nunca html/stack)
         mvc.perform(get("/api/v1/settlements/999999"))
                 .andExpect(status().isNotFound())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON));

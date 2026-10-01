@@ -1,7 +1,6 @@
 package com.srmasset.creditengine.statement;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -109,7 +108,9 @@ class StatementIT extends WebIntegrationTestBase {
     @DisplayName("keyset: paginar com limit 2 percorre tudo sem duplicar nem pular, mesmo com insercao no meio")
     void keysetStableUnderInsertion() throws Exception {
         Set<Long> expected = new HashSet<>(cedente2Brl);
-        Set<Long> seen = new HashSet<>();
+        // LISTA, nao Set: um id repetido entre paginas precisa aparecer DUAS vezes aqui —
+        // coletar direto num Set tornava a assercao de "nenhum duplicado" tautologica (M3).
+        List<Long> seenInOrder = new ArrayList<>();
 
         String cursor = null;
         boolean inserted = false;
@@ -117,7 +118,7 @@ class StatementIT extends WebIntegrationTestBase {
         do {
             String q = "?cedenteId=2&limit=2" + (cursor == null ? "" : "&cursor=" + cursor);
             JsonNode page = fetch(q);
-            page.get("items").forEach(item -> seen.add(item.get("id").asLong()));
+            page.get("items").forEach(item -> seenInOrder.add(item.get("id").asLong()));
             JsonNode next = page.get("nextCursor");
             cursor = next == null || next.isNull() ? null : next.asText();
             if (!inserted) {
@@ -129,10 +130,12 @@ class StatementIT extends WebIntegrationTestBase {
             pages++;
         } while (cursor != null && pages < 20);
 
+        Set<Long> seen = new HashSet<>(seenInOrder);
         Assertions.assertTrue(seen.containsAll(expected.stream()
                         .filter(id -> !id.equals(cedente2Brl.get(cedente2Brl.size() - 1))).toList()),
                 "nenhum item original pulado");
-        Assertions.assertEquals(seen.size(), new HashSet<>(seen).size(), "nenhum duplicado");
+        Assertions.assertEquals(seen.size(), seenInOrder.size(),
+                "nenhum id duplicado entre as paginas (keyset estavel sob insercao)");
     }
 
     @Test

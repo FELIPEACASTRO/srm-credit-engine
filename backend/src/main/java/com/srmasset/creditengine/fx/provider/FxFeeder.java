@@ -52,6 +52,13 @@ public class FxFeeder {
                 log.warn("Cotacao {}/{} do provedor descartada pela banda de sanidade: {}",
                         base, quote, outOfBand.getMessage());
                 return false;
+            } catch (InterruptedException interrupted) {
+                // Shutdown do scheduler NAO e falha do provedor: restaura a flag (future.get
+                // a limpa ao lancar) e aborta SEM retry — dormir o backoff aqui atrasaria o
+                // desligamento e mascararia o sinal de interrupcao (achado M2).
+                Thread.currentThread().interrupt();
+                log.warn("Feeder interrompido buscando {}/{}: abortando sem retry", base, quote);
+                return false;
             } catch (Exception e) {
                 log.warn("Tentativa {}/{} de cotacao {}/{} falhou: {}",
                         attempt, maxAttempts, base, quote, e.getMessage());
