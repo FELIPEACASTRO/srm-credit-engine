@@ -2,7 +2,8 @@ import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { apiClient } from "../api/client";
-import { ageLabel, FxTicker } from "./FxTicker";
+import { ageLabel } from "../lib/age";
+import { FxTicker } from "./FxTicker";
 
 const base = Date.parse("2026-09-30T12:00:00Z");
 

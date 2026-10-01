@@ -113,3 +113,18 @@ docker compose exec db psql -U postgres -d credit_engine -c "EXPLAIN (ANALYZE, B
 ## 9. CI
 
 Cinco jobs em [`ci.yml`](.github/workflows/ci.yml): `golden-cases` (gate nomeado), integração contra PostgreSQL real, frontend (tsc estrito + testes + lint + build), *guards* (grep de float/`Math.pow`/`toFixed` no caminho do dinheiro e de SQL concatenado) e `compose-smoke` — sobe a stack do zero no runner e **afere o C1 ao centavo pela API**. Além dos jobs, o **Checkstyle** ([regras de risco](backend/config/checkstyle.xml), não de formatação) está amarrado ao `validate` do Maven: roda em todo build, local e no CI — inclusive dentro do build Docker. O badge de status fica no topo deste README.
+
+## 10. Limites e fora de escopo (declarado)
+
+Cortes **conscientes**, não omissões — cada um com o porquê e onde está documentado. Nenhum é escondido; todos têm o gatilho de quando seriam revertidos.
+
+| Limite | O que **não** faz | Por quê / gatilho | Onde |
+|---|---|---|---|
+| **Ingestão em lote** | cadastro é unitário, não recebe um lote | duplo clique no comando único duplicaria recebíveis; lote atômico vs por-item é pergunta ao negócio | `SPEC.md` B6, `DECISIONS §5` |
+| **Autenticação/autorização real** | ator vem do header `X-Operator` (só rastreabilidade, forjável) | authn/authz declarados fora do escopo; plano real = OIDC no gateway, **sem tocar o domínio** (o ator já é um `String` no `SettleCommand`) | `SPEC.md` B14 |
+| **Pagamento efetivo ao cedente** | "liquidar" = **registrar** a instrução, não executa transferência | a fronteira do dinheiro externo (administrador/custodiante) é outro sistema; é justamente o que o Anexo B explora | `SPEC.md` §3, `docs/c4.md` |
+| **Face em USD** | face é só BRL; USD é moeda de **pagamento** | cross-currency na direção pedida pelos goldens; face em USD exigiria outra taxa base (pergunta ao negócio) | `SPEC.md` B4 |
+| **EDA / escala 1M tx-min** | Outbox/Saga/CQRS e sharding são **propostas documentais**, não código | construir sem necessidade medida é o anti-padrão da §12 do enunciado; há o desenho e o gatilho | [`docs/eda-liquidacao.md`](docs/eda-liquidacao.md), [`docs/escala-1m-tx-min.md`](docs/escala-1m-tx-min.md) |
+| **Backup/PITR, DR** | não há rotina de backup nem drill de recuperação | operação de produção fora do escopo de um case de 5 dias; `réplica ≠ backup` é tratado no runbook | [`docs/runbook.md`](docs/runbook.md) §6 |
+
+Estorno existe como **processo** (tabela `settlement_reversals` + runbook), não como endpoint — correção de um registro imutável é operação controlada, não rota HTTP.
