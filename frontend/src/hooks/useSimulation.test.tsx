@@ -71,6 +71,9 @@ describe("useSimulation: debounce + guarda de sequencia", () => {
       vi.advanceTimersByTime(400);
     });
     expect(result.current.data).toBeNull();
+    // sem esta assercao o teste passaria mesmo se a API FOSSE chamada e a guarda de
+    // sequencia apenas descartasse a resposta (achado M3 do code review)
+    expect(simulate).not.toHaveBeenCalled();
   });
 
   it("digitacao rapida dispara UMA chamada (debounce)", async () => {
