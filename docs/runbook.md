@@ -47,6 +47,20 @@ Senhas locais e variáveis: [`.env.example`](../.env.example). As migrations rod
 - **Logs estruturados** (ECS; `LOGGING_STRUCTURED_FORMAT_CONSOLE=ecs` no compose): toda resposta carrega **`X-Request-Id`** — correlacione o erro do usuário ao log pela mesma chave.
 - **Gate de reconciliação diária** (invariante: **0 linhas**): a query §5 de [`incident/queries.sql`](incident/queries.sql). Qualquer linha ⇒ *alerta de pager, não e-mail*.
 
+### Painel Grafana (profile opcional `observability`)
+As métricas acima ganham um dashboard pronto. Sobe **à parte** do `docker compose up` padrão (que segue só db+api+web):
+
+```bash
+docker compose --profile observability up --build
+```
+
+| Serviço | URL | Credencial |
+|---|---|---|
+| **Grafana** (dashboard provisionado) | http://localhost:3000 | `admin` / `admin` (ou `GRAFANA_ADMIN_PASSWORD`) |
+| Prometheus (scrape + explorador) | http://localhost:9090 | — |
+
+O dashboard **"SRM Credit Engine — Observabilidade"** já vem provisionado — datasource + JSON **assados na imagem** (`infra/observability/`, mesmo padrão de `infra/db`: sem bind-mount, portável): liquidações/min por outcome e moeda, taxa de replay, p50/p95/p99 do motor, latência HTTP p95 por rota, erros 5xx, pool HikariCP e memória JVM. A latência HTTP p95 depende do histograma habilitado em `application.properties` (`percentiles-histogram.http.server.requests`).
+
 ## 5. Incidentes comuns
 
 ### 5.1 Liquidação falha com **503 `fx-rate-unavailable`** (cotação velha/ausente)

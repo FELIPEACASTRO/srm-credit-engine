@@ -26,6 +26,8 @@ No **Windows**, um duplo clique resolve: **`srm.bat`** (ou `srm.bat start|stop|r
 
 Sobe do zero: PostgreSQL 17 (com usuário de aplicação **restrito** — sem UPDATE/DELETE nas tabelas append-only), migrations Flyway + seed, API e web (nginx com proxy `/api`, mesma origem). Reset completo: `docker compose down -v`. Senhas locais: [`.env.example`](.env.example).
 
+**Observabilidade (opcional):** `docker compose --profile observability up --build` sobe também Prometheus e um **Grafana** com o painel *SRM Credit Engine — Observabilidade* já provisionado (http://localhost:3000, `admin`/`admin`) — liquidações por outcome/moeda, replay, p95 do motor e da API, pool e JVM. Passo a passo no [runbook](docs/runbook.md).
+
 ### Sem Docker (demo/desenvolvimento local)
 
 ```bash

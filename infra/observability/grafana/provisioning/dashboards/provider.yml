@@ -1,0 +1,13 @@
+# Carrega os dashboards assados em /etc/grafana/dashboards (fora do volume de dados
+# /var/lib/grafana, para o volume nao sombrear o JSON em releases futuras).
+apiVersion: 1
+
+providers:
+  - name: SRM Credit Engine
+    orgId: 1
+    type: file
+    disableDeletion: true
+    allowUiUpdates: false
+    options:
+      path: /etc/grafana/dashboards
+      foldersFromFilesStructure: false
