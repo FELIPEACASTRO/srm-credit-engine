@@ -34,7 +34,7 @@ O enunciado contém ambiguidades propositais. Este documento fixa **uma premissa
 
 ## 2. Precisão numérica
 
-- **Banco:** `NUMERIC(15,2)` para dinheiro, `NUMERIC(9,6)` para juros, `NUMERIC(15,8)` para câmbio. Nunca FLOAT/REAL/MONEY. Como dinheiro é escala 2 fim a fim (coluna, contrato JSON `\d+\.\d{2}`, formatação), **só moedas de 2 casas são suportadas**: o CHECK `minor_units = 2` (migration V4) faz uma moeda incompatível falhar alto na migration, em vez de arredondar em silêncio no `INSERT`.
+- **Banco:** `NUMERIC(15,2)` para dinheiro, `NUMERIC(9,6)` para juros, `NUMERIC(15,8)` para câmbio. Nunca FLOAT/REAL/MONEY. Como dinheiro é escala 2 fim a fim (coluna, contrato JSON `\d{1,13}\.\d{2}` — o teto de 13 dígitos inteiros faz overflow virar 422 na borda, nunca 500), **só moedas de 2 casas são suportadas**: o CHECK `minor_units = 2` (migration V4) faz uma moeda incompatível falhar alto na migration, em vez de arredondar em silêncio no `INSERT`. A mesma disciplina vale para o câmbio: escala > 8 ou > 7 dígitos inteiros é recusada na borda — o `NUMERIC(15,8)` jamais arredonda uma taxa em silêncio; e a migration V5 amarra no banco a coerência do snapshot (dinheiro positivo, trio `fx_*` todo-ou-nada).
 - **Aplicação:** `BigDecimal` construído **de string**; divisão com `MathContext.DECIMAL128` (34 dígitos — sem ela, `divide` lança `ArithmeticException` já no C1, que é dízima); um único `setScale` por etapa, com `RoundingMode` explícito.
 - **Fronteiras:** dinheiro trafega como **string** no JSON (`"92859.94"`); entrada validada por pattern; nunca `float` no caminho do dinheiro (lint + testes de contrato).
 - **Quantize antes de persistir; nunca `round()` no SQL** (o `round(numeric)` do PostgreSQL desempata para longe do zero).
