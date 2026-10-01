@@ -72,9 +72,9 @@ Cotação vigente ultrapassou `FX_MAX_AGE` (24 h) ou não existe para o par. É 
 
 ### 5.2 Suspeita de **liquidação duplicada**
 Por construção não deveria acontecer: `UNIQUE(receivable_id)` + lock otimista (`UPDATE … WHERE id AND version`) + `idempotency_key`/`request_hash`. Duplo clique/retry vira **replay 200**, não segunda liquidação.
-1. **Confirme o alcance:** rode as queries §1 e §5 de [`incident/queries.sql`](incident/queries.sql) (duplicatas por recebível e por cedente).
+1. **Confirme o alcance:** rode as queries §1 e §1b de [`incident/queries.sql`](incident/queries.sql) (duplicatas por recebível e por cedente).
 2. **Distinga a causa:** `settlements_total{outcome="replayed"}` alto = idempotência absorvendo retries (saudável). Linha na reconciliação §5 = anomalia real → escalar.
-3. **Correção = estorno (processo, não endpoint):** insira em `settlement_reversals` **como dono do schema** (o papel `app_rw` não tem privilégio — proteção proposital), em dry-run `BEGIN … ROLLBACK` revisado a quatro olhos. Não existe rota HTTP de alteração/exclusão (`SPEC.md` B8).
+3. **Correção = estorno (processo, não endpoint):** o estorno é um `INSERT` **append-only** em `settlement_reversals` — o papel `app_rw` tem `SELECT`/`INSERT` nas tabelas históricas, mas **não** `UPDATE`/`DELETE`/`TRUNCATE` (V2), então corrigir é sempre *acrescentar*, nunca alterar. Conduza manualmente, em dry-run `BEGIN … ROLLBACK` revisado a quatro olhos. Não existe rota HTTP de alteração/exclusão (`SPEC.md` B8).
 
 ### 5.3 `readiness` **DOWN**
 Banco inacessível (queda, credencial, rede). A instância sai do tráfego sozinha.

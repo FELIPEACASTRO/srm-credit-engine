@@ -33,7 +33,7 @@ O `@ExceptionHandler(Exception.class)` capturava também `HttpRequestMethodNotSu
 *Detector:* `ContractIT.settlementsAreImmutableOverHttp` (esperava 405).
 *Correção:* mapeamentos explícitos de 405/rota-inexistente **antes** do catch-all (`d31e428`).
 
-**Critério mutante executado (registro).** Além dos casos espontâneos, rodei mutações deliberadas para provar que a suíte discrimina: removendo `and version = :v` do UPDATE da liquidação, o teste de concorrência ficou vermelho 5/5 **com a mensagem certa** (a perdedora vira `already-settled` — só a UNIQUE — em vez de `version-conflict`), e voltou a verde com a linha restaurada (`7a594bc`). O teste demonstra o *lock*, não a constraint.
+**Critério mutante executado (registro).** Além dos casos espontâneos, rodei mutações deliberadas para provar que a suíte discrimina: removendo `and version = :version` do UPDATE da liquidação, o teste de concorrência ficou vermelho 5/5 **com a mensagem certa** (a perdedora vira `already-settled` — só a UNIQUE — em vez de `version-conflict`), e voltou a verde com a linha restaurada (`7a594bc`). O teste demonstra o *lock*, não a constraint.
 
 ### O que os goldens oficiais pegam — e o que só os detectores próprios pegam
 

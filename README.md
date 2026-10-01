@@ -69,7 +69,7 @@ Monólito modular em 3 camadas (4.1.7), com o atalho de duas camadas **só** no 
                                    [PostgreSQL 17: settlements/rates APPEND-ONLY (trigger + papel app_rw)]
 ```
 
-**Fluxo do `POST /receivables/{id}/settlement`** (a ordem importa): replay pela `Idempotency-Key` → leitura do recebível (status + versão) → **fora da transação**: taxa base e câmbio as-of, prazo, precificação → `BEGIN` → `UPDATE receivables ... WHERE id AND version` (rowcount 0 = outra transação venceu: replay se foi a mesma chave, senão 409 `version-conflict`) → `INSERT` do snapshot autocontido (taxa usada + vigência + parâmetros que reproduzem o cálculo) → `COMMIT` → 201. Retry devolve **200 com corpo idêntico**. O provedor de câmbio **nunca** é chamado aqui: queda dele vira staleness (503 + `Retry-After`), jamais liquidação pela metade.
+**Fluxo do `POST /api/v1/receivables/{id}/settlement`** (a ordem importa): replay pela `Idempotency-Key` → leitura do recebível (status + versão) → **fora da transação**: taxa base e câmbio as-of, prazo, precificação → `BEGIN` → `UPDATE receivables ... WHERE id AND version` (rowcount 0 = outra transação venceu: replay se foi a mesma chave, senão 409 `version-conflict`) → `INSERT` do snapshot autocontido (taxa usada + vigência + parâmetros que reproduzem o cálculo) → `COMMIT` → 201. Retry devolve **200 com corpo idêntico**. O provedor de câmbio **nunca** é chamado aqui: queda dele vira staleness (503 + `Retry-After`), jamais liquidação pela metade.
 
 ## 4. Por que esta stack
 
