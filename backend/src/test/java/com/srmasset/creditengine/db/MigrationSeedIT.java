@@ -74,6 +74,44 @@ class MigrationSeedIT extends IntegrationTestBase {
     }
 
     @Test
+    @DisplayName("V5: snapshot incoerente e barrado NO BANCO (dinheiro <= 0; trio fx pela metade)")
+    void settlementCoherenceChecks() {
+        Long rid = jdbc.sql("""
+                        insert into receivables (cedente_id, type, face_value, face_currency,
+                          payment_currency, due_date, status, version, creation_key)
+                        values (1, 'DUPLICATA', 100.00, 'BRL', 'BRL',
+                          (current_date + interval '2 months')::date, 'SETTLED', 1,
+                          gen_random_uuid())
+                        returning id
+                        """).query(Long.class).single();
+        // dinheiro negativo: a app valida na borda, mas o banco e a ULTIMA linha (B3)
+        org.junit.jupiter.api.Assertions.assertThrows(
+                org.springframework.dao.DataAccessException.class, () -> jdbc.sql("""
+                        insert into settlements (receivable_id, cedente_id, idempotency_key,
+                          request_hash, strategy, face_value, term_months, pricing_date,
+                          base_rate_id, base_rate, spread, rounding_mode, present_value_brl,
+                          discount_brl, payment_currency, paid_amount, settled_by, settled_at)
+                        select :id, 1, gen_random_uuid(), repeat('0', 64), 'DUPLICATA', 100.00,
+                               2, current_date, b.id, b.monthly_rate, 0.015, 'HALF_EVEN',
+                               -1.00, 0.00, 'BRL', 100.00, 'test', now()
+                        from base_rates b limit 1
+                        """).param("id", rid).update());
+        // trio de cambio pela metade: fx_rate preenchido sem fx_rate_id/fx_valid_from
+        org.junit.jupiter.api.Assertions.assertThrows(
+                org.springframework.dao.DataAccessException.class, () -> jdbc.sql("""
+                        insert into settlements (receivable_id, cedente_id, idempotency_key,
+                          request_hash, strategy, face_value, term_months, pricing_date,
+                          base_rate_id, base_rate, spread, rounding_mode, present_value_brl,
+                          discount_brl, payment_currency, paid_amount, fx_rate,
+                          settled_by, settled_at)
+                        select :id, 1, gen_random_uuid(), repeat('0', 64), 'DUPLICATA', 100.00,
+                               2, current_date, b.id, b.monthly_rate, 0.015, 'HALF_EVEN',
+                               97.09, 2.91, 'BRL', 97.09, 5.43210000, 'test', now()
+                        from base_rates b limit 1
+                        """).param("id", rid).update());
+    }
+
+    @Test
     @DisplayName("indices unicos de idempotencia existem: ux_settlements_receivable e ux_settlements_idem")
     void uniqueIndexes() {
         Long count = jdbc.sql("""

@@ -20,11 +20,17 @@ public class CorrelationIdFilter extends OncePerRequestFilter {
 
     public static final String HEADER = "X-Request-Id";
 
+    /** So caracteres inofensivos para log/MDC; cobre tambem vazio e comprimento. */
+    private static final java.util.regex.Pattern SAFE =
+            java.util.regex.Pattern.compile("[A-Za-z0-9-]{1,64}");
+
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
             FilterChain chain) throws ServletException, IOException {
         String requestId = request.getHeader(HEADER);
-        if (requestId == null || requestId.isBlank() || requestId.length() > 64) {
+        if (requestId == null || !SAFE.matcher(requestId).matches()) {
+            // Conteudo fora de [A-Za-z0-9-] (ex.: CR/LF) iria ao MDC e permitiria log
+            // injection em appender de texto (achado B5): id invalido = gera um novo.
             requestId = UUID.randomUUID().toString();
         }
         MDC.put("requestId", requestId);

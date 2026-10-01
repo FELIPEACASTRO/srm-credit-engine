@@ -95,6 +95,17 @@ class ReceivableServiceIT extends IntegrationTestBase {
     }
 
     @Test
+    @DisplayName("vencimento futuro porem < 1 mes -> 422 JA no cadastro (B4): nunca nasce OPEN insimulavel")
+    void shortTermRejectedAtRegistration() {
+        // sem esta validacao o recebivel nasceria OPEN mas seria insimulavel/inliquidavel
+        // para sempre (TermCalculator exige prazo >= 1 na outra ponta)
+        assertThrows(com.srmasset.creditengine.pricing.InvalidTermException.class,
+                () -> service.register(new RegisterReceivableCommand(
+                        1L, "DUPLICATA", "100.00", "BRL",
+                        LocalDate.now(clock).plusDays(10), UUID.randomUUID())));
+    }
+
+    @Test
     @DisplayName("simulacao usa o MESMO motor da liquidacao e nao persiste nada")
     void simulationSameEngineNoPersistence() {
         long before = jdbc.sql("select count(*) from receivables").query(Long.class).single();

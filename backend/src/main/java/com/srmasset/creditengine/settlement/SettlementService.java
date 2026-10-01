@@ -118,8 +118,12 @@ public class SettlementService {
                 receivable.type(), new Money(receivable.faceValue(), Currency.BRL),
                 termMonths, payment, fxForPricing), ctx));
 
+        // Comparacao NUMERICA, nao textual: "092859.94" (o pattern da borda permite zeros a
+        // esquerda) e o mesmo preco — um equals de String responderia 409 "price-changed"
+        // mentindo que o preco mudou (achado B1).
         if (cmd.expectedAmount() != null
-                && !result.paidAmount().amount().toPlainString().equals(cmd.expectedAmount())) {
+                && result.paidAmount().amount()
+                        .compareTo(new java.math.BigDecimal(cmd.expectedAmount())) != 0) {
             throw new PriceChangedException(
                     cmd.expectedAmount(), result.paidAmount().amount().toPlainString());
         }
@@ -178,8 +182,12 @@ public class SettlementService {
     }
 
     private static String requestHash(SettleCommand cmd) {
+        // expectedAmount CANONICALIZADO (zeros a esquerda fora): "092859.94" e "92859.94"
+        // sao a mesma intencao — sem isso um retry legitimo na forma nao-canonica viraria
+        // 422 idempotency-key-reuse (achado B1).
         String canonical = cmd.receivableId() + "|"
-                + (cmd.expectedAmount() == null ? "" : cmd.expectedAmount());
+                + (cmd.expectedAmount() == null
+                        ? "" : new java.math.BigDecimal(cmd.expectedAmount()).toPlainString());
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             return HexFormat.of().formatHex(

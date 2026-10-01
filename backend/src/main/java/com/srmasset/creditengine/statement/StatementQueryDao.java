@@ -71,7 +71,12 @@ public class StatementQueryDao {
                 .param("toTs", toOffset(toTs))
                 .query((rs, i) -> totals.put(
                         rs.getString("payment_currency").trim(),
-                        rs.getBigDecimal("total").setScale(2).toPlainString()))
+                        // UNNECESSARY explicito (regra 2: nunca default de biblioteca): a SUM
+                        // de NUMERIC(15,2) ja tem escala 2 — se a coluna mudar, isto LANCA em
+                        // vez de arredondar dinheiro em silencio fora da RoundingPolicy (B2)
+                        rs.getBigDecimal("total")
+                                .setScale(2, java.math.RoundingMode.UNNECESSARY)
+                                .toPlainString()))
                 .list();
         return totals;
     }

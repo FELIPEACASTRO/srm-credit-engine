@@ -64,6 +64,10 @@ public class ReceivableService {
             throw new IllegalArgumentException(
                     "Vencimento deve ser futuro: " + cmd.dueDate());
         }
+        // Prazo minimo JA NO CADASTRO: vencimento futuro porem < 1 mes criaria um recebivel
+        // OPEN insimulavel/inliquidavel para sempre (TermCalculator exige >= 1) — a mesma
+        // regra tem que valer nas duas portas (achado B4). Lanca InvalidTermException -> 422.
+        TermCalculator.termMonths(today, cmd.dueDate());
         if (!receivables.cedenteExists(cmd.cedenteId())) {
             throw new CedenteNotFoundException(cmd.cedenteId());
         }

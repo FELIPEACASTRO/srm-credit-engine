@@ -64,5 +64,14 @@ class MetricsIT extends WebIntegrationTestBase {
                 .andReturn();
         String requestId = result.getResponse().getHeader("X-Request-Id");
         assertTrue(requestId != null && !requestId.isBlank(), "X-Request-Id ausente");
+
+        // id fora de [A-Za-z0-9-] NAO pode chegar ao MDC (log injection, B5): e descartado
+        // e um novo e gerado — a resposta nunca ecoa o conteudo sujo
+        var dirty = mvc.perform(get("/actuator/health")
+                        .header("X-Request-Id", "abc evil{injetado}"))
+                .andReturn();
+        String sanitized = dirty.getResponse().getHeader("X-Request-Id");
+        assertTrue(sanitized != null && sanitized.matches("[A-Za-z0-9-]{1,64}"),
+                "id sujo deveria ter sido substituido por um seguro: " + sanitized);
     }
 }

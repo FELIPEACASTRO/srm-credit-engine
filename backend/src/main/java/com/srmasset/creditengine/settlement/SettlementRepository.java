@@ -118,7 +118,14 @@ public class SettlementRepository {
 
     /** Diz qual índice único causou a violação 23505 — decide entre replay e already-settled. */
     public static boolean isIdempotencyKeyViolation(org.springframework.dao.DuplicateKeyException e) {
-        String message = String.valueOf(e.getMostSpecificCause().getMessage());
-        return message.contains("ux_settlements_idem");
+        // Nome do constraint direto do protocolo (identificador nao passa por lc_messages):
+        // decidir pelo TEXTO da mensagem quebraria num servidor com locale diferente (B7).
+        Throwable cause = e.getMostSpecificCause();
+        if (cause instanceof org.postgresql.util.PSQLException pg
+                && pg.getServerErrorMessage() != null
+                && pg.getServerErrorMessage().getConstraint() != null) {
+            return "ux_settlements_idem".equals(pg.getServerErrorMessage().getConstraint());
+        }
+        return String.valueOf(cause.getMessage()).contains("ux_settlements_idem");
     }
 }
