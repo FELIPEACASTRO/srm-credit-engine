@@ -84,8 +84,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({IdempotencyKeyReuseException.class,
             com.srmasset.creditengine.receivable.CreationKeyReuseException.class})
     ResponseEntity<ProblemDetail> keyReuse(RuntimeException e) {
-        return ResponseEntity.unprocessableEntity()
-                .body(problem(HttpStatus.UNPROCESSABLE_ENTITY, "idempotency-key-reuse",
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_CONTENT)
+                .body(problem(HttpStatus.UNPROCESSABLE_CONTENT, "idempotency-key-reuse",
                         e.getMessage()));
     }
 
@@ -99,41 +99,41 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(UnknownReceivableTypeException.class)
     ResponseEntity<ProblemDetail> unknownType(UnknownReceivableTypeException e) {
-        return ResponseEntity.unprocessableEntity()
-                .body(problem(HttpStatus.UNPROCESSABLE_ENTITY, "unknown-receivable-type",
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_CONTENT)
+                .body(problem(HttpStatus.UNPROCESSABLE_CONTENT, "unknown-receivable-type",
                         e.getMessage()));
     }
 
     @ExceptionHandler(RateOutOfBandException.class)
     ResponseEntity<ProblemDetail> rateOutOfBand(RateOutOfBandException e) {
-        return ResponseEntity.unprocessableEntity()
-                .body(problem(HttpStatus.UNPROCESSABLE_ENTITY, "rate-out-of-band",
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_CONTENT)
+                .body(problem(HttpStatus.UNPROCESSABLE_CONTENT, "rate-out-of-band",
                         e.getMessage()));
     }
 
     @ExceptionHandler(InvalidTermException.class)
     ResponseEntity<ProblemDetail> invalidTerm(InvalidTermException e) {
-        return ResponseEntity.unprocessableEntity()
-                .body(problem(HttpStatus.UNPROCESSABLE_ENTITY, "invalid-term", e.getMessage()));
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_CONTENT)
+                .body(problem(HttpStatus.UNPROCESSABLE_CONTENT, "invalid-term", e.getMessage()));
     }
 
     /** Demais violações de regra (inclui bordas B13): 422 genérico com a mensagem de domínio. */
     @ExceptionHandler(IllegalArgumentException.class)
     ResponseEntity<ProblemDetail> invalidInput(IllegalArgumentException e) {
-        return ResponseEntity.unprocessableEntity()
-                .body(problem(HttpStatus.UNPROCESSABLE_ENTITY, "invalid-input", e.getMessage()));
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_CONTENT)
+                .body(problem(HttpStatus.UNPROCESSABLE_CONTENT, "invalid-input", e.getMessage()));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     ResponseEntity<ProblemDetail> validation(MethodArgumentNotValidException e) {
-        ProblemDetail p = problem(HttpStatus.UNPROCESSABLE_ENTITY, "validation-error",
+        ProblemDetail p = problem(HttpStatus.UNPROCESSABLE_CONTENT, "validation-error",
                 "Um ou mais campos sao invalidos");
         Map<String, String> errors = new LinkedHashMap<>();
         for (FieldError f : e.getBindingResult().getFieldErrors()) {
             errors.put(f.getField(), f.getDefaultMessage());
         }
         p.setProperty("errors", errors);
-        return ResponseEntity.unprocessableEntity().body(p);
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_CONTENT).body(p);
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
