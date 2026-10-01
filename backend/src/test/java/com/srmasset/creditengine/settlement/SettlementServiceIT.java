@@ -58,7 +58,7 @@ class SettlementServiceIT extends IntegrationTestBase {
     private long newReceivable(String face, String currency, int months) {
         return receivables.register(new RegisterReceivableCommand(
                         1L, "DUPLICATA", face, currency,
-                        LocalDate.now().plusMonths(months), UUID.randomUUID()))
+                        LocalDate.now(clock).plusMonths(months), UUID.randomUUID()))
                 .receivable().id();
     }
 
@@ -150,7 +150,7 @@ class SettlementServiceIT extends IntegrationTestBase {
                         """).update();
         long id = receivables.register(new RegisterReceivableCommand(
                         1L, "DUPLICATA", "100000.00", "ZBY",
-                        LocalDate.now().plusMonths(3), UUID.randomUUID()))
+                        LocalDate.now(clock).plusMonths(3), UUID.randomUUID()))
                 .receivable().id();
         UUID key = UUID.randomUUID();
 
@@ -177,7 +177,7 @@ class SettlementServiceIT extends IntegrationTestBase {
                 .update();
         long id = receivables.register(new RegisterReceivableCommand(
                         1L, "DUPLICATA", "10000.00", "ZAR",
-                        LocalDate.now().plusMonths(2), UUID.randomUUID()))
+                        LocalDate.now(clock).plusMonths(2), UUID.randomUUID()))
                 .receivable().id();
         UUID key = UUID.randomUUID();
 

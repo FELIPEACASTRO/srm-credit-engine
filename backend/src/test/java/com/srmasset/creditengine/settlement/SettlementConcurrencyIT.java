@@ -63,7 +63,7 @@ class SettlementConcurrencyIT extends IntegrationTestBase {
     private long newReceivable() {
         return receivables.register(new RegisterReceivableCommand(
                         1L, "CHEQUE", "7777.00", "BRL",
-                        LocalDate.now().plusMonths(2), UUID.randomUUID()))
+                        LocalDate.now(clock).plusMonths(2), UUID.randomUUID()))
                 .receivable().id();
     }
 

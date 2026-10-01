@@ -55,7 +55,7 @@ class AnnexARegressionIT extends WebIntegrationTestBase {
                                 {"cedenteId":1,"type":"DUPLICATA","faceValue":"100.00",
                                  "paymentCurrency":"USD'), (999, 999999.99, 'USD",
                                  "dueDate":"%s"}
-                                """.formatted(LocalDate.now().plusMonths(2))))
+                                """.formatted(LocalDate.now(clock).plusMonths(2))))
                 .andExpect(status().isUnprocessableEntity());
 
         assertEquals(before, count("receivables"));
@@ -75,7 +75,7 @@ class AnnexARegressionIT extends WebIntegrationTestBase {
                         .content("""
                                 {"type":"CHEQUE","faceValue":"25000.00","paymentCurrency":"BRL",
                                  "dueDate":"%s"}
-                                """.formatted(LocalDate.now().plusMonths(2))))
+                                """.formatted(LocalDate.now(clock).plusMonths(2))))
                 .andExpect(status().isOk());
     }
 
@@ -89,7 +89,7 @@ class AnnexARegressionIT extends WebIntegrationTestBase {
                         .content("""
                                 {"cedenteId":1,"type":"CHEQUE_ESPECIAL","faceValue":"100.00",
                                  "paymentCurrency":"BRL","dueDate":"%s"}
-                                """.formatted(LocalDate.now().plusMonths(2))))
+                                """.formatted(LocalDate.now(clock).plusMonths(2))))
                 .andExpect(status().isUnprocessableEntity());
         assertEquals(before, count("receivables"));
     }

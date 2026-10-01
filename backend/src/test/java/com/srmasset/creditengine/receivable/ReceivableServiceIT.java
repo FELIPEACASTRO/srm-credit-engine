@@ -26,7 +26,7 @@ class ReceivableServiceIT extends IntegrationTestBase {
 
     private RegisterReceivableCommand cmd(UUID key) {
         return new RegisterReceivableCommand(
-                1L, "DUPLICATA", "50000.00", "BRL", LocalDate.now().plusMonths(4), key);
+                1L, "DUPLICATA", "50000.00", "BRL", LocalDate.now(clock).plusMonths(4), key);
     }
 
     @Test
@@ -53,7 +53,7 @@ class ReceivableServiceIT extends IntegrationTestBase {
         service.register(cmd(key)); // faceValue 50000.00, DUPLICATA, BRL
 
         RegisterReceivableCommand divergente = new RegisterReceivableCommand(
-                1L, "DUPLICATA", "99999.00", "BRL", LocalDate.now().plusMonths(4), key);
+                1L, "DUPLICATA", "99999.00", "BRL", LocalDate.now(clock).plusMonths(4), key);
         assertThrows(CreationKeyReuseException.class, () -> service.register(divergente));
 
         // o cadastro original permanece unico e intacto
@@ -68,7 +68,7 @@ class ReceivableServiceIT extends IntegrationTestBase {
     @DisplayName("cedente inexistente -> CedenteNotFound (404 na borda)")
     void unknownCedente() {
         RegisterReceivableCommand bad = new RegisterReceivableCommand(
-                999L, "DUPLICATA", "100.00", "BRL", LocalDate.now().plusMonths(2), UUID.randomUUID());
+                999L, "DUPLICATA", "100.00", "BRL", LocalDate.now(clock).plusMonths(2), UUID.randomUUID());
         assertThrows(CedenteNotFoundException.class, () -> service.register(bad));
     }
 
@@ -76,7 +76,7 @@ class ReceivableServiceIT extends IntegrationTestBase {
     @DisplayName("tipo desconhecido e barrado NO CADASTRO pelo mesmo registry do motor (nunca default)")
     void unknownType() {
         RegisterReceivableCommand bad = new RegisterReceivableCommand(
-                1L, "NOTA_FISCAL", "100.00", "BRL", LocalDate.now().plusMonths(2), UUID.randomUUID());
+                1L, "NOTA_FISCAL", "100.00", "BRL", LocalDate.now(clock).plusMonths(2), UUID.randomUUID());
         assertThrows(UnknownReceivableTypeException.class, () -> service.register(bad));
     }
 
@@ -85,13 +85,13 @@ class ReceivableServiceIT extends IntegrationTestBase {
     void invalidInputs() {
         assertThrows(IllegalArgumentException.class, () -> service.register(
                 new RegisterReceivableCommand(1L, "DUPLICATA", "0.00", "BRL",
-                        LocalDate.now().plusMonths(2), UUID.randomUUID())));
+                        LocalDate.now(clock).plusMonths(2), UUID.randomUUID())));
         assertThrows(IllegalArgumentException.class, () -> service.register(
                 new RegisterReceivableCommand(1L, "DUPLICATA", "100.00", "EUR",
-                        LocalDate.now().plusMonths(2), UUID.randomUUID())));
+                        LocalDate.now(clock).plusMonths(2), UUID.randomUUID())));
         assertThrows(IllegalArgumentException.class, () -> service.register(
                 new RegisterReceivableCommand(1L, "DUPLICATA", "100.00", "BRL",
-                        LocalDate.now().minusDays(1), UUID.randomUUID())));
+                        LocalDate.now(clock).minusDays(1), UUID.randomUUID())));
     }
 
     @Test
@@ -100,7 +100,7 @@ class ReceivableServiceIT extends IntegrationTestBase {
         long before = jdbc.sql("select count(*) from receivables").query(Long.class).single();
 
         SimulationResult r = service.simulate(new SimulationCommand(
-                "DUPLICATA", "100000.00", "BRL", LocalDate.now().plusMonths(3)));
+                "DUPLICATA", "100000.00", "BRL", LocalDate.now(clock).plusMonths(3)));
 
         assertEquals(3, r.termMonths());
         assertEquals("92859.94", r.presentValueBrl());
@@ -115,7 +115,7 @@ class ReceivableServiceIT extends IntegrationTestBase {
     @DisplayName("simulacao em USD converte o PV ja arredondado pela vigente (C3 com o seed 5,4321)")
     void simulationUsd() {
         SimulationResult r = service.simulate(new SimulationCommand(
-                "DUPLICATA", "100000.00", "USD", LocalDate.now().plusMonths(3)));
+                "DUPLICATA", "100000.00", "USD", LocalDate.now(clock).plusMonths(3)));
 
         assertEquals("17094.67", r.paidAmount());
         assertEquals("USD", r.paidCurrency());
