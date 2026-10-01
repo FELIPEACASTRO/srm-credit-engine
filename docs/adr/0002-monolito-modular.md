@@ -23,7 +23,7 @@ flowchart LR
         pricing["pricing<br/>(PricingEngine, StrategyRegistry,<br/>RoundingPolicy, TermCalculator)"]
         settlement["settlement<br/>(SettlementService)"]
         fx["fx<br/>(ExchangeRateService, feeder)"]
-        rates["rates<br/>(BaseRate, Currency)"]
+        rates["rates<br/>(BaseRate, CurrencyRepository)"]
         receivable["receivable"]
     end
     subgraph persist["Camada de persistência"]

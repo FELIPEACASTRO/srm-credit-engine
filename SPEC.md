@@ -38,7 +38,7 @@ O enunciado contém ambiguidades propositais. Este documento fixa **uma premissa
 - **Aplicação:** `BigDecimal` construído **de string**; divisão com `MathContext.DECIMAL128` (34 dígitos — sem ela, `divide` lança `ArithmeticException` já no C1, que é dízima); um único `setScale` por etapa, com `RoundingMode` explícito.
 - **Fronteiras:** dinheiro trafega como **string** no JSON (`"92859.94"`); entrada validada por pattern; nunca `float` no caminho do dinheiro (lint + testes de contrato).
 - **Quantize antes de persistir; nunca `round()` no SQL** (o `round(numeric)` do PostgreSQL desempata para longe do zero).
-- Fato verificado: com taxas 1,025/1,035 e face em centavos **não existe empate de meio centavo no PV em BRL** — o modo de arredondamento só se manifesta na conversão cambial. Por isso a suíte tem casos discriminantes próprios (G4–G7) além dos goldens oficiais.
+- Fato verificado: com taxas 1,025/1,035 e face em centavos **não existe empate de meio centavo no PV em BRL** — o modo de arredondamento só se manifesta na conversão cambial. Por isso a suíte tem casos discriminantes próprios (G4–G8) além dos goldens oficiais.
 
 ## 3. Perguntas ao negócio (as 6 mais valiosas)
 
