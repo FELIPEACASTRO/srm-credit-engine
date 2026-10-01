@@ -44,7 +44,7 @@ Pré-requisitos: **JDK 21+** (funciona com 21 ou 22 — o alvo de compilação �
 ```bash
 cd backend
 ./mvnw test                     # suíte unitária (goldens C1-C3 + discriminantes G4-G8 + empates) — < 5 s
-./mvnw verify -Pintegration     # PostgreSQL 17 REAL embarcado: imutabilidade, idempotência (6 faces),
+./mvnw verify -Pintegration     # PostgreSQL 17 REAL embarcado: imutabilidade, idempotência (9 faces),
                                 # lock otimista com barreira, contrato HTTP, vetores do Anexo A, extrato
 cd frontend && npm test         # money pt-BR, corrida da simulação, chave por intenção, filtros na URL
 
@@ -92,7 +92,7 @@ Monólito modular em 3 camadas (4.1.7), com o atalho de duas camadas **só** no 
 
 ## 7. Frontend sem estado global
 
-Estado de servidor no TanStack Query; **filtros e cursor do extrato na URL** (compartilháveis); formulário local. Nada é compartilhado entre telas — store global precisaria de justificativa que não existe aqui. Duplo clique é travado por ref síncrona e a `Idempotency-Key` nasce **por intenção** (mesma intenção + retry = mesma chave = replay do backend). Dinheiro nunca vira `Number` no cliente — trafega como **string de ponta a ponta** (não existe aritmética monetária no browser; `formatMoney` lança se a escala vier errada); `ErrorBoundary` **por seção** (simulação, extrato, ticker) contém uma falha de render sem derrubar a mesa inteira, e a geração de UUID resiste a contexto não-seguro (acesso por IP da LAN).
+Estado de servidor no TanStack Query; **filtros e cursor do extrato na URL** (compartilháveis); formulário local. Nada é compartilhado entre telas — store global precisaria de justificativa que não existe aqui. Duplo clique é travado por ref síncrona e a `Idempotency-Key` nasce **por intenção, com escopo de sessão** (`lib/intentionKeys`): mesma intenção + retry = mesma chave = replay do backend — inclusive depois de desviar o formulário e voltar, ou de o diálogo remontar. Dinheiro nunca vira `Number` no cliente — trafega como **string de ponta a ponta** (não existe aritmética monetária no browser; `formatMoney` lança se a escala vier errada); `ErrorBoundary` **por seção** (simulação, extrato, ticker) contém uma falha de render sem derrubar a mesa inteira, e a geração de UUID resiste a contexto não-seguro (acesso por IP da LAN).
 
 ## 8. Extrato: consulta e índices
 
@@ -112,4 +112,4 @@ docker compose exec db psql -U postgres -d credit_engine -c "EXPLAIN (ANALYZE, B
 
 ## 9. CI
 
-Cinco jobs em [`ci.yml`](.github/workflows/ci.yml): `golden-cases` (gate nomeado), integração contra PostgreSQL real, frontend (tsc estrito + testes + lint + build), *guards* (grep de float/`Math.pow`/`toFixed` no caminho do dinheiro e de SQL concatenado) e `compose-smoke` — sobe a stack do zero no runner e **afere o C1 ao centavo pela API**. O badge de status fica no topo deste README.
+Cinco jobs em [`ci.yml`](.github/workflows/ci.yml): `golden-cases` (gate nomeado), integração contra PostgreSQL real, frontend (tsc estrito + testes + lint + build), *guards* (grep de float/`Math.pow`/`toFixed` no caminho do dinheiro e de SQL concatenado) e `compose-smoke` — sobe a stack do zero no runner e **afere o C1 ao centavo pela API**. Além dos jobs, o **Checkstyle** ([regras de risco](backend/config/checkstyle.xml), não de formatação) está amarrado ao `validate` do Maven: roda em todo build, local e no CI — inclusive dentro do build Docker. O badge de status fica no topo deste README.
