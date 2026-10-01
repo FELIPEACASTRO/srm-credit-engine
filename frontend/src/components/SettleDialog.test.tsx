@@ -86,6 +86,34 @@ describe("SettleDialog: chave por intencao, anti-duplo-clique", () => {
     expect(settleKeys()[1]).not.toBe(settleKeys()[0]);
   });
 
+  it("desvio A->B->A e REMONTAGEM preservam as chaves da intencao (retry replaya, nao duplica cadastro)", async () => {
+    const { client, registerKeys, settleKeys } = clients();
+    // o PIOR caso do A1: cadastro SUCEDE e a liquidacao falha — chave de criacao nova
+    // no retry cadastraria um SEGUNDO recebivel (o replay nao dispara) e o original
+    // ficaria OPEN orfao
+    client.settle.mockRejectedValueOnce(new Error("rede caiu"));
+    const formA = { ...form, faceValue: "77777.00" }; // intencao exclusiva deste teste
+
+    const first = render(
+        <SettleDialog form={formA} expectedAmount="72222.11" client={client} />);
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: /cadastrar e liquidar/i }));
+    await waitFor(() => expect(screen.getByRole("alert")).toBeInTheDocument());
+
+    // operador desvia a intencao para B e volta para A...
+    first.rerender(<SettleDialog form={{ ...formA, faceValue: "88888.00" }}
+        expectedAmount="82539.68" client={client} />);
+    first.rerender(<SettleDialog form={formA} expectedAmount="72222.11" client={client} />);
+    // ...e o painel REMONTA o dialogo (a re-simulacao desmonta durante o loading)
+    first.unmount();
+    render(<SettleDialog form={formA} expectedAmount="72222.11" client={client} />);
+
+    await user.click(screen.getByRole("button", { name: /cadastrar e liquidar/i }));
+    await waitFor(() => expect(settleKeys().length).toBe(2));
+    expect(registerKeys()[1]).toBe(registerKeys()[0]); // MESMA creationKey => replay
+    expect(settleKeys()[1]).toBe(settleKeys()[0]);     // MESMA settleKey   => replay
+  });
+
   it("apos sucesso, trocar o form ESCONDE o card da intencao antiga (sem flash de dados velhos)", async () => {
     const { client } = clients();
     const { rerender } = render(

@@ -11,7 +11,6 @@ import com.srmasset.creditengine.receivable.RegisterReceivableCommand;
 import com.srmasset.creditengine.settlement.SettleCommand;
 import com.srmasset.creditengine.settlement.SettlementService;
 import com.srmasset.creditengine.support.WebIntegrationTestBase;
-import java.time.Clock;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -40,14 +39,6 @@ class StatementIT extends WebIntegrationTestBase {
 
     @Autowired
     private SettlementService settlements;
-
-    /**
-     * MESMO Clock da aplicação (fuso da mesa, B12): "hoje"/"ontem" aqui têm que ser o dia
-     * do NEGÓCIO, não o do runner — num runner UTC entre 00:00–03:00Z as datas divergem
-     * e um LocalDate.now() sem zona reprovava o filtro de período (pego pelo CI).
-     */
-    @Autowired
-    private Clock clock;
 
     /** ids das liquidações semeadas por este teste: cedente 2 = BRL, cedente 3 = USD. */
     private final List<Long> cedente2Brl = new ArrayList<>();

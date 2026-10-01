@@ -41,7 +41,7 @@ class ContractIT extends WebIntegrationTestBase {
         mvc.perform(post("/api/v1/simulations")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(simulationBody("DUPLICATA", "100000.00", "BRL",
-                                LocalDate.now().plusMonths(3))))
+                                LocalDate.now(clock).plusMonths(3))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.termMonths").value(3))
                 .andExpect(jsonPath("$.presentValue.amount").value("92859.94"))
@@ -58,7 +58,7 @@ class ContractIT extends WebIntegrationTestBase {
         mvc.perform(post("/api/v1/simulations")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(simulationBody("NOTA_FISCAL", "100.00", "BRL",
-                                LocalDate.now().plusMonths(2))))
+                                LocalDate.now(clock).plusMonths(2))))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.code").value("unknown-receivable-type"));
@@ -72,14 +72,58 @@ class ContractIT extends WebIntegrationTestBase {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"type":"DUPLICATA","faceValue":1e5,"paymentCurrency":"BRL","dueDate":"%s"}
-                                """.formatted(LocalDate.now().plusMonths(3))))
+                                """.formatted(LocalDate.now(clock).plusMonths(3))))
                 .andExpect(status().is4xxClientError());
         // string sem as 2 casas: 422 por validacao de padrao
         mvc.perform(post("/api/v1/simulations")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(simulationBody("DUPLICATA", "100000", "BRL",
-                                LocalDate.now().plusMonths(3))))
+                                LocalDate.now(clock).plusMonths(3))))
                 .andExpect(status().isUnprocessableEntity());
+        // 14 digitos inteiros: estouraria NUMERIC(15,2) -> 422 na borda, nunca 500
+        mvc.perform(post("/api/v1/simulations")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(simulationBody("DUPLICATA", "12345678901234.00", "BRL",
+                                LocalDate.now(clock).plusMonths(3))))
+                .andExpect(status().isUnprocessableEntity());
+    }
+
+    @Test
+    @DisplayName("taxa com escala > 8 ou > 7 digitos inteiros -> 422; 8 casas aceitas e ecoadas EXATAS")
+    void exchangeRateScaleGuard() throws Exception {
+        jdbc.sql("insert into currencies (code, minor_units) values ('ZBY', 2) on conflict do nothing")
+                .update();
+
+        // 9 casas: o NUMERIC(15,8) arredondaria EM SILENCIO (half-up, fora da RoundingPolicy)
+        // e o 201 devolveria valor diferente do persistido — rejeitado na borda
+        mvc.perform(post("/api/v1/exchange-rates")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"base":"USD","quote":"ZBY","rate":"5.123456789","validFrom":"%s"}
+                                """.formatted(java.time.Instant.now())))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.code").value("invalid-input"));
+
+        // mais de 7 digitos inteiros: estouraria o NUMERIC(15,8) -> 422, nunca 500
+        mvc.perform(post("/api/v1/exchange-rates")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"base":"USD","quote":"ZBY","rate":"12345678.00","validFrom":"%s"}
+                                """.formatted(java.time.Instant.now())))
+                .andExpect(status().isUnprocessableEntity());
+
+        // 8 casas exatas: aceita, e resposta == persistido == o que a liquidacao usara
+        mvc.perform(post("/api/v1/exchange-rates")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"base":"USD","quote":"ZBY","rate":"5.12345678","validFrom":"%s"}
+                                """.formatted(java.time.Instant.now())))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.rate").value("5.12345678"));
+        mvc.perform(get("/api/v1/exchange-rates/current")
+                        .param("base", "USD").param("quote", "ZBY"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.rate").value("5.12345678"));
     }
 
     @Test
@@ -90,7 +134,7 @@ class ContractIT extends WebIntegrationTestBase {
                         .content("""
                                 {"cedenteId":1,"type":"DUPLICATA","faceValue":"100.00",
                                  "paymentCurrency":"BRL","dueDate":"%s"}
-                                """.formatted(LocalDate.now().plusMonths(2))))
+                                """.formatted(LocalDate.now(clock).plusMonths(2))))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.code").value("missing-idempotency-key"));
@@ -102,7 +146,7 @@ class ContractIT extends WebIntegrationTestBase {
         String body = """
                 {"cedenteId":1,"type":"DUPLICATA","faceValue":"100.00",
                  "paymentCurrency":"BRL","dueDate":"%s"}
-                """.formatted(LocalDate.now().plusMonths(2));
+                """.formatted(LocalDate.now(clock).plusMonths(2));
         // ausente -> missing
         mvc.perform(post("/api/v1/receivables")
                         .contentType(MediaType.APPLICATION_JSON).content(body))
@@ -122,7 +166,7 @@ class ContractIT extends WebIntegrationTestBase {
         String registerBody = """
                 {"cedenteId":1,"type":"DUPLICATA","faceValue":"100000.00",
                  "paymentCurrency":"BRL","dueDate":"%s"}
-                """.formatted(LocalDate.now().plusMonths(3));
+                """.formatted(LocalDate.now(clock).plusMonths(3));
 
         MvcResult registered = mvc.perform(post("/api/v1/receivables")
                         .header("Idempotency-Key", UUID.randomUUID())
@@ -242,7 +286,7 @@ class ContractIT extends WebIntegrationTestBase {
         mvc.perform(post("/api/v1/simulations")
                         .contentType(MediaType.TEXT_PLAIN)
                         .content(simulationBody("DUPLICATA", "100000.00", "BRL",
-                                LocalDate.now().plusMonths(3))))
+                                LocalDate.now(clock).plusMonths(3))))
                 .andExpect(status().isUnsupportedMediaType())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.code").value("unsupported-media-type"));

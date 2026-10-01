@@ -1,8 +1,8 @@
 import { useRef, useState } from "react";
 import { ApiError, apiClient, type ApiClient, type Idempotent } from "../api/client";
 import type { ReceivableResponse, SettlementResponse } from "../api/types";
+import { keysFor } from "../lib/intentionKeys";
 import { formatMoney } from "../lib/money";
-import { uuidv4 } from "../lib/uuid";
 
 export interface SettleFormValues {
   cedenteId: string;
@@ -22,17 +22,15 @@ interface Props {
   onSettled?: (settlement: SettlementResponse) => void;
 }
 
-interface IntentionKeys {
-  intention: string;
-  creationKey: string;
-  settleKey: string;
-}
-
 /**
- * "Cadastrar e liquidar" com Idempotency-Key POR INTENÇÃO (premissa B7): as chaves nascem
- * quando o formulário assume estes valores e são REUSADAS no retry — o replay do backend
- * garante que rede instável nunca duplica. Formulário diferente = intenção nova = chaves
- * novas. O duplo clique é bloqueado por ref síncrona (estado do React é assíncrono).
+ * "Cadastrar e liquidar" com Idempotency-Key POR INTENÇÃO (premissa B7): as chaves são
+ * um PAR ESTÁVEL por conteúdo do formulário com escopo de SESSÃO (lib/intentionKeys) —
+ * sobrevivem a desvio-e-volta (A→B→A) e à REMONTAGEM do diálogo na re-simulação, então
+ * o retry depois de falha parcial dispara o replay do backend em vez de cadastrar um
+ * segundo recebível (achado A1 do code review). Formulário diferente = intenção nova =
+ * chaves novas. O duplo clique é bloqueado por ref síncrona (estado do React é assíncrono).
+ * Nota de contrato: expectedAmount NÃO entra na intenção de propósito — uma mera
+ * reprecificação (mesmo form, preço novo) deve reusar o MESMO cadastro, não criar outro.
  */
 export function SettleDialog({ form, expectedAmount, client = apiClient,
     operator = "mesa", onSettled }: Props) {
@@ -43,16 +41,9 @@ export function SettleDialog({ form, expectedAmount, client = apiClient,
   const [done, setDone] = useState<{ result: Idempotent<SettlementResponse>; intention: string } | null>(null);
   const [error, setError] = useState<{ message: string; intention: string } | null>(null);
   const busyRef = useRef(false);
-  const keysRef = useRef<IntentionKeys | null>(null);
 
   const intention = JSON.stringify(form);
-  if (keysRef.current?.intention !== intention) {
-    keysRef.current = {
-      intention,
-      creationKey: uuidv4(),
-      settleKey: uuidv4(),
-    };
-  }
+  const keys = keysFor(intention);
   const currentDone = done?.intention === intention ? done.result : null;
   const currentError = error?.intention === intention ? error.message : null;
 
@@ -60,8 +51,7 @@ export function SettleDialog({ form, expectedAmount, client = apiClient,
     if (busyRef.current) {
       return;
     }
-    const keys = keysRef.current!;
-    const forIntention = keys.intention;
+    const forIntention = intention;
     busyRef.current = true;
     setBusy(true);
     setError(null);

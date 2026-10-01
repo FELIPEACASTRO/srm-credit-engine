@@ -34,7 +34,7 @@ class MetricsIT extends WebIntegrationTestBase {
     void businessMetricsExposed() throws Exception {
         long id = receivables.register(new RegisterReceivableCommand(
                         1L, "DUPLICATA", "1234.00", "BRL",
-                        LocalDate.now().plusMonths(2), UUID.randomUUID()))
+                        LocalDate.now(clock).plusMonths(2), UUID.randomUUID()))
                 .receivable().id();
         UUID key = UUID.randomUUID();
         settlements.settle(new SettleCommand(id, key, null, "metrics-it"));
