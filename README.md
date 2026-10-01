@@ -22,6 +22,7 @@ No **Windows**, um duplo clique resolve: **`srm.bat`** (ou `srm.bat start|stop|r
 | API | http://localhost:8080 |
 | Swagger/OpenAPI | http://localhost:8080/swagger-ui.html |
 | Métricas (Prometheus) | http://localhost:8080/actuator/prometheus |
+| Health · readiness · liveness | `/actuator/health` · `/actuator/health/readiness` · `/actuator/health/liveness` (:8080) |
 
 Sobe do zero: PostgreSQL 17 (com usuário de aplicação **restrito** — sem UPDATE/DELETE nas tabelas append-only), migrations Flyway + seed, API e web (nginx com proxy `/api`, mesma origem). Reset completo: `docker compose down -v`. Senhas locais: [`.env.example`](.env.example).
 
@@ -80,6 +81,7 @@ Monólito modular em 3 camadas (4.1.7), com o atalho de duas camadas **só** no 
 | [`DECISIONS.md`](DECISIONS.md) | Fila de cortes, horas por bloco × rubrica, alternativas rejeitadas |
 | [`REVIEW.md`](REVIEW.md) | Anexo A por impacto de negócio (bug de unidade ~40x acima do SQLi, com premissas) |
 | [`AI_USAGE.md`](AI_USAGE.md) | 4 erros reais de IA + detector, critério mutante executado, o que não delegei |
+| [`docs/runbook.md`](docs/runbook.md) | Operação: subir/derrubar, readiness≠liveness, incidentes (câmbio velho, duplicata), estorno como processo |
 | [`docs/adr/`](docs/adr) · [escala 1M tx/min](docs/escala-1m-tx-min.md) · [EDA](docs/eda-liquidacao.md) · [post-mortem Anexo B](docs/incident/postmortem-anexo-b.md) | Bloco staff |
 
 ## 6. Git
