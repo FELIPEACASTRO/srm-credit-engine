@@ -22,6 +22,10 @@ describe("ageLabel: idade da vigencia da cotacao (now injetavel)", () => {
   it("nunca negativo se o validFrom for futuro (relogios dessincronizados)", () => {
     expect(ageLabel("2026-09-30T12:10:00Z", base)).toBe("agora");
   });
+
+  it("timestamp malformado vira traco, nunca 'ha NaN h'", () => {
+    expect(ageLabel("nao-e-data", base)).toBe("—");
+  });
 });
 
 // O componente em si estava com cobertura ZERO (so a funcao pura era testada): um timer

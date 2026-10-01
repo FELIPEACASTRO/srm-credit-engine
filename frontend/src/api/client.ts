@@ -46,8 +46,17 @@ async function request<T>(path: string, init?: RequestInit): Promise<Idempotent<
     }
     throw new ApiError(response.status, problem.code, problem.detail, problem.errors);
   }
+  let parsed: unknown;
+  try {
+    parsed = await response.json();
+  } catch {
+    // 2xx com corpo invalido: "Unexpected token..." e jargao de parser, nao mensagem de
+    // mesa — vira ApiError acionavel em vez de SyntaxError cru na UI (B11)
+    throw new ApiError(response.status, "invalid-response",
+        "Resposta invalida do servidor; tente novamente");
+  }
   return {
-    body: (await response.json()) as T,
+    body: parsed as T,
     replayed: response.headers.get("Idempotent-Replayed") === "true",
   };
 }

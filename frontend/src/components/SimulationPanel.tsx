@@ -15,9 +15,15 @@ export function SimulationPanel() {
   const [type, setType] = useState("DUPLICATA");
   const [currency, setCurrency] = useState("BRL");
   const [dueDate, setDueDate] = useState(() => {
-    const inThreeMonths = new Date();
-    inThreeMonths.setMonth(inThreeMonths.getMonth() + 3);
-    return inThreeMonths.toISOString().slice(0, 10);
+    // Data LOCAL com clamp de fim de mes (B10): toISOString() usa UTC (em Sao Paulo apos
+    // as 21h o default nasceria um dia a frente) e setMonth transborda o fim de mes
+    // (30/nov + 3 viraria 02/mar). So afeta o valor DEFAULT editavel do campo.
+    const now = new Date();
+    const target = new Date(now.getFullYear(), now.getMonth() + 3, 1);
+    const lastDay = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate();
+    target.setDate(Math.min(now.getDate(), lastDay));
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${target.getFullYear()}-${pad(target.getMonth() + 1)}-${pad(target.getDate())}`;
   });
   const [cedenteId, setCedenteId] = useState("1");
 

@@ -4,7 +4,11 @@ import { apiClient } from "../api/client";
 
 /** Idade da vigencia em pt-BR. `now` injetavel para teste puro (sem relogio real). */
 export function ageLabel(validFrom: string, now: number = Date.now()): string {
-  const minutes = Math.max(0, Math.floor((now - Date.parse(validFrom)) / 60_000));
+  const parsed = Date.parse(validFrom);
+  if (Number.isNaN(parsed)) {
+    return "—"; // timestamp malformado: melhor um traco honesto que "ha NaN h" (B14)
+  }
+  const minutes = Math.max(0, Math.floor((now - parsed) / 60_000));
   if (minutes < 1) {
     return "agora";
   }
@@ -31,7 +35,10 @@ export function FxTicker() {
     return () => clearInterval(id);
   }, []);
 
-  if (isError) {
+  // So "sem cotacao" quando NUNCA houve uma: um blip de rede num refetch de fundo
+  // (isError com data presente) nao pode sumir com uma taxa possivelmente ainda
+  // vigente — ela segue exibida, marcada como desatualizada (B14).
+  if (isError && !data) {
     return (
       <div className="ticker stale" title="Sem cotação vigente utilizável">
         <span className="dot" />
@@ -49,7 +56,10 @@ export function FxTicker() {
     );
   }
   return (
-    <div className="ticker" title={`Vigente desde ${data.validFrom}`}>
+    <div className={isError ? "ticker stale" : "ticker"}
+        title={isError
+            ? `Atualização falhou; exibindo a última vigente (desde ${data.validFrom})`
+            : `Vigente desde ${data.validFrom}`}>
       <span className="dot" />
       <span className="pair">USD/BRL</span>
       <span className="rate">{data.rate}</span>
