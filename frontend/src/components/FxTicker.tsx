@@ -1,22 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "../api/client";
-
-/** Idade da vigencia em pt-BR. `now` injetavel para teste puro (sem relogio real). */
-export function ageLabel(validFrom: string, now: number = Date.now()): string {
-  const parsed = Date.parse(validFrom);
-  if (Number.isNaN(parsed)) {
-    return "—"; // timestamp malformado: melhor um traco honesto que "ha NaN h" (B14)
-  }
-  const minutes = Math.max(0, Math.floor((now - parsed) / 60_000));
-  if (minutes < 1) {
-    return "agora";
-  }
-  if (minutes < 60) {
-    return `há ${minutes} min`;
-  }
-  return `há ${Math.floor(minutes / 60)} h`;
-}
+import { ageLabel } from "../lib/age";
 
 /** Cotação vigente sempre à vista — com a IDADE da vigência, porque taxa sem idade não se audita. */
 export function FxTicker() {
