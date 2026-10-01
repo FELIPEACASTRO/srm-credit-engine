@@ -61,13 +61,13 @@ public class ExchangeRateService {
      * instante da nova vigência é tratado como fat finger. Primeira cotação do par não tem
      * referência — a banda não se aplica. {@code override=true} conscientemente ignora a
      * banda (choque cambial real que excede 10%), registrando quem forçou.
+     *
+     * <p>Limites CONHECIDOS da banda (deliberados neste escopo — B6 do review): a referência
+     * é a vigente as-of {@code validFrom} mesmo que já vencida (staleness não participa do
+     * check); degraus sucessivos de ±10% passam sem override; e o override fica em log de
+     * auditoria (WARN), não em coluna. Endurecer qualquer um é pergunta de alçada ao
+     * negócio (SPEC A4), não default do motor.
      */
-    /** Sobrecarga sem override (feeder, seeds): source 'manual', banda de sanidade sempre vale. */
-    public ExchangeRateRow register(String base, String quote, String rate, Instant validFrom,
-            String actor) {
-        return register(base, quote, rate, validFrom, actor, "manual", false);
-    }
-
     public ExchangeRateRow register(String base, String quote, String rate, Instant validFrom,
             String actor, String source, boolean override) {
         if (rate == null || !rate.matches(RATE_PATTERN)) {

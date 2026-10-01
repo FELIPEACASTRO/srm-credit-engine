@@ -31,4 +31,11 @@ describe("filtros do extrato na URL (compartilhavel/bookmarkavel)", () => {
     const next = applyFilterChange(current, { cursor: "p2" });
     expect(next).toEqual({ paymentCurrency: "USD", cursor: "p2" });
   });
+
+  it("data malformada colada na URL e descartada (nao vai ao backend nem quebra o input)", () => {
+    expect(searchToFilters("from=lixo&to=2026-01-31&cedenteId=2"))
+        .toEqual({ to: "2026-01-31", cedenteId: "2" });
+    expect(searchToFilters("from=2026-13-99")).toEqual({ from: "2026-13-99" });
+    // (o formato passa; valor impossivel e 400 do backend exibido no extrato — borda dele)
+  });
 });

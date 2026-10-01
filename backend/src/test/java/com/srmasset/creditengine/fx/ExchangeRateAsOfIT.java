@@ -106,17 +106,17 @@ class ExchangeRateAsOfIT extends IntegrationTestBase {
         String q = newQuote();
         Instant now = Instant.now();
         // primeira cotacao do par: sem vigente para comparar, banda nao se aplica
-        service.register("USD", q, "5.50", now, "mesa");
+        service.register("USD", q, "5.50", now, "mesa", "manual", false);
         // +9% passa; +81% e fat finger
-        service.register("USD", q, "5.99", now.plusSeconds(1), "mesa");
+        service.register("USD", q, "5.99", now.plusSeconds(1), "mesa", "manual", false);
         assertThrows(RateOutOfBandException.class,
-                () -> service.register("USD", q, "9.99", now.plusSeconds(2), "mesa"));
+                () -> service.register("USD", q, "9.99", now.plusSeconds(2), "mesa", "manual", false));
         assertThrows(IllegalArgumentException.class,
-                () -> service.register("USD", q, "0", now.plusSeconds(3), "mesa"));
+                () -> service.register("USD", q, "0", now.plusSeconds(3), "mesa", "manual", false));
         assertThrows(IllegalArgumentException.class,
-                () -> service.register("USD", q, "abc", now.plusSeconds(4), "mesa"));
+                () -> service.register("USD", q, "abc", now.plusSeconds(4), "mesa", "manual", false));
         assertThrows(IllegalArgumentException.class,
-                () -> service.register("USD", "ZZZ", "5.00", now, "mesa"));
+                () -> service.register("USD", "ZZZ", "5.00", now, "mesa", "manual", false));
     }
 
     @Test

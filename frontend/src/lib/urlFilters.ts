@@ -20,11 +20,18 @@ export function filtersToSearch(filters: StatementFilters): string {
   return params.toString();
 }
 
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
 export function searchToFilters(search: string): StatementFilters {
   const params = new URLSearchParams(search);
   const filters: StatementFilters = {};
   for (const key of KEYS) {
     const value = params.get(key);
+    // Lixo colado na URL (?from=abc) seguiria verbatim ao backend (400) e deixaria o
+    // input type=date vazio com o filtro "ativo": data malformada e descartada (B15).
+    if (value && (key === "from" || key === "to") && !ISO_DATE.test(value)) {
+      continue;
+    }
     if (value) {
       filters[key] = value;
     }

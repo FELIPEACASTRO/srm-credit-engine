@@ -1,6 +1,7 @@
 package com.srmasset.creditengine.settlement;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -64,6 +65,24 @@ class SettlementServiceIT extends IntegrationTestBase {
 
     private SettleCommand cmd(long receivableId, UUID key) {
         return new SettleCommand(receivableId, key, null, "operador-teste");
+    }
+
+    @Test
+    @DisplayName("face 9: expectedAmount e comparado por VALOR (zeros a esquerda) e o retry replaya (B1)")
+    void expectedAmountIsCanonicalized() {
+        long id = newReceivable("100000.00", "BRL", 3);
+        UUID key = UUID.randomUUID();
+        // "092859.94" == 92859.94 numericamente: um equals de String responderia
+        // 409 price-changed MENTINDO que o preco mudou
+        SettlementOutcome first = service.settle(
+                new SettleCommand(id, key, "092859.94", "operador-teste"));
+        assertTrue(first.created());
+        // retry da MESMA intencao na forma canonica: o hash canonicalizado tem que casar
+        // (sem canonicalizacao viraria 422 idempotency-key-reuse num retry legitimo)
+        SettlementOutcome retry = service.settle(
+                new SettleCommand(id, key, "92859.94", "operador-teste"));
+        assertFalse(retry.created());
+        assertEquals(first.settlement().id(), retry.settlement().id());
     }
 
     @Test

@@ -17,7 +17,8 @@ public class OpenApiConfig {
                         Precificação e liquidação de recebíveis multimoedas (BRL/USD).
                         Convenções: dinheiro SEMPRE como string no padrão 12345.67; erros em \
                         application/problem+json (RFC 9457) com campo "code" estável; \
-                        operações de escrita exigem Idempotency-Key (UUID) e aceitam X-Operator; \
-                        liquidações são imutáveis (sem PUT/PATCH/DELETE)."""));
+                        cadastro e liquidação exigem Idempotency-Key (UUID) e a liquidação \
+                        aceita X-Operator (cotações têm outra idempotência: append-only com \
+                        vigência); liquidações são imutáveis (sem PUT/PATCH/DELETE)."""));
     }
 }

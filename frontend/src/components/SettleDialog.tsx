@@ -68,9 +68,10 @@ export function SettleDialog({ form, expectedAmount, client = apiClient,
       setDone({ result: settled, intention: forIntention });
       onSettled?.(settled.body);
     } catch (e) {
+      // throw nao-Error (string/objeto) exibiria "undefined" na mesa (B12)
       const message = e instanceof ApiError
           ? `${e.code ?? e.status}: ${e.message}`
-          : (e as Error).message;
+          : e instanceof Error ? e.message : String(e);
       setError({ message, intention: forIntention });
     } finally {
       busyRef.current = false;
@@ -78,29 +79,38 @@ export function SettleDialog({ form, expectedAmount, client = apiClient,
     }
   }
 
-  if (currentDone) {
-    const s = currentDone.body;
-    return (
-      <section className="card success" aria-live="polite">
-        <h3>Liquidação nº {s.id} registrada{currentDone.replayed ? " · replay idempotente" : ""}</h3>
-        <p>
-          Pago <strong>{formatMoney(s.paid.amount, s.paid.currency)}</strong> · deságio{" "}
-          <strong>{formatMoney(s.discount.amount, s.discount.currency)}</strong> · câmbio{" "}
-          <strong>{s.fx ? s.fx.rate : "—"}</strong> · operador <strong>{s.settledBy}</strong>
-        </p>
-      </section>
-    );
-  }
-
+  const s = currentDone?.body;
   return (
-    <div className="actions">
-      <button type="button" disabled={busy} onClick={run}>
-        {busy ? "Liquidando…" : currentError ? "Tentar novamente" : "Cadastrar e liquidar"}
-      </button>
-      {currentError && (
-        <p role="alert" className="error" style={{ margin: 0 }}>
-          Falha ao liquidar — {currentError}
-        </p>
+    <div>
+      {/* Regiao viva PERSISTENTE (B13): uma live region que NASCE junto do conteudo
+          costuma nao ser anunciada por leitores de tela — este container existe desde o
+          mount e o card de sucesso chega DEPOIS, dentro dele. */}
+      <div aria-live="polite">
+        {s && (
+          <section className="card success">
+            <h3>
+              Liquidação nº {s.id} registrada
+              {currentDone?.replayed ? " · replay idempotente" : ""}
+            </h3>
+            <p>
+              Pago <strong>{formatMoney(s.paid.amount, s.paid.currency)}</strong> · deságio{" "}
+              <strong>{formatMoney(s.discount.amount, s.discount.currency)}</strong> · câmbio{" "}
+              <strong>{s.fx ? s.fx.rate : "—"}</strong> · operador <strong>{s.settledBy}</strong>
+            </p>
+          </section>
+        )}
+      </div>
+      {!s && (
+        <div className="actions">
+          <button type="button" disabled={busy} onClick={run}>
+            {busy ? "Liquidando…" : currentError ? "Tentar novamente" : "Cadastrar e liquidar"}
+          </button>
+          {currentError && (
+            <p role="alert" className="error" style={{ margin: 0 }}>
+              Falha ao liquidar — {currentError}
+            </p>
+          )}
+        </div>
       )}
     </div>
   );
