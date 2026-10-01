@@ -11,6 +11,7 @@ import com.srmasset.creditengine.receivable.RegisterReceivableCommand;
 import com.srmasset.creditengine.settlement.SettleCommand;
 import com.srmasset.creditengine.settlement.SettlementService;
 import com.srmasset.creditengine.support.WebIntegrationTestBase;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -40,6 +41,14 @@ class StatementIT extends WebIntegrationTestBase {
     @Autowired
     private SettlementService settlements;
 
+    /**
+     * MESMO Clock da aplicação (fuso da mesa, B12): "hoje"/"ontem" aqui têm que ser o dia
+     * do NEGÓCIO, não o do runner — num runner UTC entre 00:00–03:00Z as datas divergem
+     * e um LocalDate.now() sem zona reprovava o filtro de período (pego pelo CI).
+     */
+    @Autowired
+    private Clock clock;
+
     /** ids das liquidações semeadas por este teste: cedente 2 = BRL, cedente 3 = USD. */
     private final List<Long> cedente2Brl = new ArrayList<>();
     private final List<Long> cedente3Usd = new ArrayList<>();
@@ -47,7 +56,7 @@ class StatementIT extends WebIntegrationTestBase {
     private long settleNew(long cedenteId, String face, String currency) {
         long id = receivables.register(new RegisterReceivableCommand(
                         cedenteId, "DUPLICATA", face, currency,
-                        LocalDate.now().plusMonths(3), UUID.randomUUID()))
+                        LocalDate.now(clock).plusMonths(3), UUID.randomUUID()))
                 .receivable().id();
         return settlements.settle(new SettleCommand(id, UUID.randomUUID(), null, "statement-it"))
                 .settlement().id();
@@ -73,7 +82,7 @@ class StatementIT extends WebIntegrationTestBase {
     @Test
     @DisplayName("filtro por cedente + periodo de hoje (fuso da mesa) traz so as dele; totais por moeda como string")
     void filterByCedenteAndPeriod() throws Exception {
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now(clock);
         JsonNode page = fetch("?cedenteId=2&from=" + today + "&to=" + today + "&limit=100");
 
         Set<Long> ids = new HashSet<>();
@@ -151,7 +160,7 @@ class StatementIT extends WebIntegrationTestBase {
     @Test
     @DisplayName("periodo exclui o dia seguinte: to=ontem nao traz as liquidacoes de hoje")
     void periodUpperBoundExclusive() throws Exception {
-        LocalDate yesterday = LocalDate.now().minusDays(1);
+        LocalDate yesterday = LocalDate.now(clock).minusDays(1);
         JsonNode page = fetch("?cedenteId=2&from=" + yesterday + "&to=" + yesterday + "&limit=100");
         for (JsonNode item : page.get("items")) {
             Assertions.assertFalse(cedente2Brl.contains(item.get("id").asLong()),
