@@ -77,6 +77,18 @@ public class ExchangeRateService {
         if (value.signum() <= 0) {
             throw new IllegalArgumentException("Taxa deve ser positiva: " + rate);
         }
+        // A coluna e NUMERIC(15,8): escala maior seria ARREDONDADA EM SILENCIO pelo banco
+        // (half-up, fora da RoundingPolicy) e o 201 devolveria um valor diferente do
+        // persistido/usado na liquidacao. Rejeitar na borda e a unica resposta honesta.
+        if (value.scale() > 8) {
+            throw new IllegalArgumentException(
+                    "Taxa com mais de 8 casas decimais ('" + rate
+                            + "'): ajuste a escala na origem — o sistema nao arredonda cambio");
+        }
+        if (value.precision() - value.scale() > 7) {
+            throw new IllegalArgumentException(
+                    "Taxa fora do intervalo suportado (ate 7 digitos inteiros): " + rate);
+        }
         if (currencies.find(base).isEmpty() || currencies.find(quote).isEmpty()) {
             throw new IllegalArgumentException("Par com moeda desconhecida: " + base + "/" + quote);
         }
