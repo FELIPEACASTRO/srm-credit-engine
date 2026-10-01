@@ -84,7 +84,7 @@ Banco inacessível (queda, credencial, rede). A instância sai do tráfego sozin
 
 ## 6. Mudanças de schema e dados
 
-- **Migrations são aditivas (expand)**: `V1` schema · `V2` imutabilidade+papéis · `V3` seed · `V4` guard de escala de moeda. Nunca `ddl-auto`; nunca editar uma migration já aplicada — some outra `V_n`.
+- **Migrations são aditivas (expand)**: `V1` schema · `V2` imutabilidade+papéis · `V3` seed · `V4` guard de escala de moeda · `V5` coerência do snapshot de liquidação. Nunca `ddl-auto`; nunca editar uma migration já aplicada — some outra `V_n`.
 - **`rollback` de binário não desfaz dados**: reverter a imagem da API **não** desfaz uma migration. Planeje expand → migrate → contrair.
 - **Réplica ≠ backup**: o volume `db-data` não é backup; uma exclusão lógica se replica. Backup/PITR é processo à parte (fora do escopo do desafio, citado aqui para não virar suposição).
 

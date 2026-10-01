@@ -1,6 +1,7 @@
 # Diagrama ER
 
-Gerado do schema real (migrations `V1__schema.sql` … `V4__money_scale_guard.sql`). Convenções:
+Gerado do schema real (migrations `V1__schema.sql` … `V5__settlement_coherence_checks.sql` —
+a V5 amarra a coerência do snapshot: dinheiro positivo e trio `fx_*` todo-ou-nada). Convenções:
 dinheiro `NUMERIC(15,2)`, juros `NUMERIC(9,6)`, câmbio `NUMERIC(15,8)`; `base_rates`,
 `exchange_rates`, `settlements` e `settlement_reversals` são **append-only** (triggers +
 papel `app_rw` na V2).

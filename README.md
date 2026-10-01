@@ -62,7 +62,7 @@ Monólito modular em 3 camadas (4.1.7), com o atalho de duas camadas **só** no 
     web/         controllers finos · Problem Details RFC 9457 · OpenAPI
     pricing/     DOMÍNIO PURO: Money, MonthlyRate, RoundingPolicy, Strategy+registry (sem default),
                  DiscountFactor aditivo, FxConversion (par ordenado), TermCalculator (clamp fim de mês)
-    fx/          as-of na tabela interna · staleness 503 · feeder (timeout 800ms + 3 retries) <- MockFxProvider
+    fx/          as-of na tabela interna · staleness 503 · feeder (timeout 800ms, 3 tentativas) <- MockFxProvider
     receivable/  cadastro idempotente (creation_key) · simulação NO MESMO motor
     settlement/  transação curta: UPDATE ... WHERE id AND version -> INSERT snapshot
     statement/   SQL nativo parametrizado · keyset (settled_at,id) · totais por moeda
